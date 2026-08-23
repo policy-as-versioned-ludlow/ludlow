@@ -22,6 +22,33 @@ name: shift-left policy check
 # Fulcio-from-Actions-OIDC, logged-to-Rekor pattern cut-release.yml already
 # proves out for release tags) and post the signed result as a PR comment,
 # so the reviewer can verify the check independently of trusting the badge.
+#
+# Ticket cs-28: two live bugs fixed below, plus a new, separate adopter
+# gate. This job used to check out platform's DEFAULT BRANCH, not the tag
+# under review -- the "version cross-check gate" step below was comparing
+# ludlow's workload against whatever platform happened to have on `main`
+# right now, never against the release this PR is actually proposing to
+# adopt. The platform checkout now follows the tag THIS PR's own
+# gitops/platform/platform-pin.yaml names, read from the PR head, and a
+# later step refuses unless that tag's resolved commit matches the pinned
+# `commit` field exactly -- ADR-0001's belt-and-braces pin becomes
+# load-bearing instead of decorative. The adopter-gate steps near the
+# bottom of this job are new and separate from `ci-check.py`: they verify
+# platform's own cs-27 evidence (signed, identity-pinned, offline) and
+# compute this institution's own composed bump across the pinned policy
+# version array -- they do not replace or change the existing gate above.
+#
+# Ticket cs-29: the adopter gate also renders platform's verified evidence
+# into a PULL REQUEST COMMENT (not a body edit). Renovate authors and can
+# overwrite this PR's own body on every re-run of its own; a later CI step
+# editing the body risks either being silently clobbered by Renovate's next
+# pass, or itself clobbering content Renovate just wrote -- there is no
+# established merge/append convention for the body. This job already has a
+# working, proven pattern for exactly this problem, immediately below: post
+# CI-computed, independently-verifiable content as a PR COMMENT via `gh pr
+# comment`. Comments are append-only and untouched by Renovate, so re-using
+# that established mechanism (rather than `gh pr edit --body`) is the safer
+# call here, at the cost of the literal word "body" in the ticket's title.
 
 on: [pull_request]
 
@@ -35,17 +62,51 @@ permissions:
   id-token: write
   pull-requests: write
 
+# Ticket cs-28: the institution's own expected-identity constant for
+# verifying PLATFORM's evidence signature (cs-27's cosign bundle, signed
+# from platform's cut-release.yml run). This is a SEPARATE constant from
+# release.yml's own EXPECTED_IDENTITY_REGEXP (ticket cs-14) -- that one
+# verifies THIS repo's own cut-release.yml identity on ludlow's own release
+# tags; this one verifies PLATFORM's cut-release.yml identity on platform's
+# evidence. Same anchoring rule ticket cs-14 established: both ends
+# anchored (^...$), every literal `.` escaped, main or a release/<major>.
+# <minor>.x maintenance branch. Held here as a literal, not read from
+# anything platform supplies at verification time -- a platform workflow
+# rename breaks this on purpose, and a human re-decides who this repo
+# trusts. ADOPTER_GATE_ISSUER matches release.yml's own EXPECTED_ISSUER
+# value exactly (the same Sigstore public-good OIDC issuer every keyless
+# signature in this estate authenticates against).
+env:
+  ADOPTER_GATE_IDENTITY_REGEXP: ^https://github\.com/policy-as-versioned-platform/platform/\.github/workflows/cut-release\.yml@refs/heads/(main|release/[0-9]+\.[0-9]+\.x)$
+  ADOPTER_GATE_ISSUER: https://token.actions.githubusercontent.com
+
 jobs:
   shift-left:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with: { path: ludlow }
+        with:
+          path: ludlow
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: fetch this PR's base commit too (ticket cs-28 needs the OLD platform pin, not just the new one)
+        run: git -C ludlow fetch --depth=1 origin ${{ github.event.pull_request.base.sha }}
+
+      - name: read the platform tag THIS PR proposes (from the PR head's own platform-pin.yaml -- bug #1 fix)
+        id: pin
+        run: |
+          set -euo pipefail
+          tag=$(grep -m1 -oE 'tag: v[0-9]+\.[0-9]+\.[0-9]+' ludlow/gitops/platform/platform-pin.yaml | awk '{print $2}')
+          [ -n "$tag" ] || { echo "FAIL: could not read spec.ref.tag from ludlow/gitops/platform/platform-pin.yaml" >&2; exit 1; }
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "platform-pin.yaml (PR head) proposes tag: $tag"
 
       - uses: actions/checkout@v4
         with:
           repository: policy-as-versioned-platform/platform
           path: platform
+          ref: ${{ steps.pin.outputs.tag }}
+          fetch-depth: 0
 
       - name: install pinned kyverno cli (binary + checksum, no marketplace action)
         env:
@@ -116,3 +177,46 @@ jobs:
             echo '```'
           } > pr-comment.md
           gh pr comment "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" --body-file pr-comment.md
+
+      # Ticket cs-28 from here down: a new, separate adopter gate. Does not
+      # replace anything above -- ci-check.py already ran, against the
+      # correct tag now that the checkout above follows this PR's own pin.
+      #
+      # adopter_gate.py does bug #2's own check itself (the checked-out
+      # platform tag must resolve to the pinned `commit` field, or refuse)
+      # as its very first move, alongside the pin diff, the evidence
+      # verification and the composed-bump math -- see that script's own
+      # module docstring. No separate YAML step duplicates it here.
+
+      - name: adopter gate -- verify pin, verify platform's evidence, compose this institution's own bump (ticket cs-28)
+        id: adopter-gate
+        run: |
+          set -euo pipefail
+          pip install --quiet pyyaml
+          set +e
+          python3 ludlow/.github/scripts/adopter_gate.py \
+            --ludlow-dir ludlow \
+            --platform-dir platform \
+            --old-ref "${{ github.event.pull_request.base.sha }}" \
+            --new-ref "${{ github.event.pull_request.head.sha }}" \
+            --out-comment adopter-gate-comment.md \
+            --identity-regexp "${ADOPTER_GATE_IDENTITY_REGEXP}" \
+            --issuer "${ADOPTER_GATE_ISSUER}"
+          code=$?
+          set -e
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0   # never fail THIS step -- the comment must post either way; the next step enforces the verdict
+
+      - name: post the adopter-gate evidence as a PR comment (ticket cs-29 -- comment, not body, see header)
+        if: always() && steps.adopter-gate.outputs.exit_code != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh pr comment "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" --body-file adopter-gate-comment.md
+
+      - name: fail the required check if the adopter gate refused
+        if: steps.adopter-gate.outputs.exit_code != '0'
+        run: |
+          echo "FAIL: the adopter gate refused this pull request -- see the PR comment above for the composed bump and the verified evidence." >&2
+          exit 1
