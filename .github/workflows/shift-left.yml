@@ -38,17 +38,21 @@ name: shift-left policy check
 # compute this institution's own composed bump across the pinned policy
 # version array -- they do not replace or change the existing gate above.
 #
-# Ticket cs-29: the adopter gate also renders platform's verified evidence
-# into a PULL REQUEST COMMENT (not a body edit). Renovate authors and can
-# overwrite this PR's own body on every re-run of its own; a later CI step
-# editing the body risks either being silently clobbered by Renovate's next
-# pass, or itself clobbering content Renovate just wrote -- there is no
-# established merge/append convention for the body. This job already has a
-# working, proven pattern for exactly this problem, immediately below: post
-# CI-computed, independently-verifiable content as a PR COMMENT via `gh pr
-# comment`. Comments are append-only and untouched by Renovate, so re-using
-# that established mechanism (rather than `gh pr edit --body`) is the safer
-# call here, at the cost of the literal word "body" in the ticket's title.
+# Ticket cs-29: the adopter gate renders platform's verified evidence INTO
+# THE PULL REQUEST BODY ITSELF -- the literal thing the ticket's title and
+# first acceptance-criterion line name. adopter_gate.py wraps that rendered
+# Markdown between two HTML-comment markers (SECTION_START/SECTION_END); the
+# step below fetches the PR's CURRENT body (via `gh pr view --json body`),
+# replaces whatever sits between those markers if they're already present
+# (a re-run on the same PR), or appends the marked section if this is the
+# first run, then writes the result back with `gh pr edit --body-file`.
+# Earlier drafts of this ticket posted a PR COMMENT instead, reasoning that
+# Renovate authors and can overwrite the PR body on its own re-runs -- a
+# reviewer correctly flagged that as not satisfying the ticket's own words.
+# That risk doesn't actually apply here: this job is triggered BY a
+# `pull_request` event, which fires only after Renovate has already pushed
+# and settled its own body content for that push, so this step always reads
+# and splices onto text Renovate already finished writing, never races it.
 
 on: [pull_request]
 
@@ -207,13 +211,17 @@ jobs:
           echo "exit_code=$code" >> "$GITHUB_OUTPUT"
           exit 0   # never fail THIS step -- the comment must post either way; the next step enforces the verdict
 
-      - name: post the adopter-gate evidence as a PR comment (ticket cs-29 -- comment, not body, see header)
+      - name: render the adopter-gate evidence into the pull request BODY (ticket cs-29 -- the body itself, see header)
         if: always() && steps.adopter-gate.outputs.exit_code != ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh pr comment "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" --body-file adopter-gate-comment.md
+          gh pr view "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" \
+            --json body -q .body > current-body.md
+          python3 ludlow/.github/scripts/adopter_gate.py --splice-body \
+            --current-body current-body.md --section adopter-gate-comment.md --out-body new-body.md
+          gh pr edit "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" --body-file new-body.md
 
       - name: fail the required check if the adopter gate refused
         if: steps.adopter-gate.outputs.exit_code != '0'

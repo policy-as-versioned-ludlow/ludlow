@@ -47,9 +47,21 @@ answer to the same question has no tie-breaker"). Instead it:
      talks the institution down from what the tag's own number already
      promises (spec.md: "a local view cannot weaken a published promise").
 
-Also renders the verified evidence into a PR-comment-shaped Markdown
-document (ticket cs-29) -- see shift-left.yml's own header comment for why
-this ships as a PR COMMENT and not a body edit.
+Also renders the verified evidence into a Markdown document (ticket cs-29)
+and wraps it between SECTION_START/SECTION_END HTML-comment markers --
+shift-left.yml locates that pair inside the pull request's own CURRENT body
+(fetched fresh at the top of the step, so it always reads whatever Renovate
+most recently wrote) and replaces the span between them, or appends the
+whole marked section if the markers aren't present yet. This lands the
+evidence IN THE PULL REQUEST BODY ITSELF, literally, as ticket cs-29's own
+title and first acceptance-criterion line require -- not a PR comment. A
+comment was this ticket's first cut; a reviewer flagged that as not
+satisfying the ticket's own words, so this now edits the body for real. It
+is safe against Renovate's own re-runs for the same reason a comment would
+have been: shift-left.yml is triggered BY a `pull_request` event, which only
+fires after Renovate has already finished writing its own body content for
+that push -- the step always splices onto text Renovate already settled on,
+never races it.
 
 Usage:
     adopter_gate.py --ludlow-dir DIR --platform-dir DIR \\
@@ -85,6 +97,38 @@ EXPECTED_ISSUER = "https://token.actions.githubusercontent.com"
 
 RANK = {"none": 0, "patch": 1, "minor": 2, "major": 3}
 RANK_NAME = {v: k for k, v in RANK.items()}
+
+# HTML-comment markers shift-left.yml greps out of the pull request's own
+# CURRENT body to find (and replace) the span this gate owns, or append it
+# if this is the first run on this PR. Never rendered by GitHub (an HTML
+# comment), so they don't clutter what the reviewer sees.
+SECTION_START = "<!-- cs-29:adopter-gate:start -->"
+SECTION_END = "<!-- cs-29:adopter-gate:end -->"
+
+
+def wrap_section(markdown: str) -> str:
+    """The rendered evidence (or refusal), wrapped for splicing into the
+    pull request body between SECTION_START/SECTION_END. Kept as a thin
+    wrapper around render_comment/write_refusal_comment, which stay pure and
+    unaware of where their output ends up -- selfcheck exercises them
+    directly without needing to strip markers back out."""
+    return f"{SECTION_START}\n{markdown.rstrip()}\n{SECTION_END}\n"
+
+
+SECTION_PATTERN = re.compile(re.escape(SECTION_START) + r".*?" + re.escape(SECTION_END), re.DOTALL)
+
+
+def splice_body(current_body: str, section: str) -> str:
+    """`section` is already wrap_section()'d output. Replaces a prior span
+    between the markers in-place (a re-run on the same pull request), or
+    appends the whole marked section after whatever's there (the first run
+    on this PR -- typically Renovate's own body). Pure string logic, no I/O,
+    so shift-left.yml's own step is just "fetch, splice, write back" with no
+    embedded multi-line script of its own -- see --splice-body below."""
+    if SECTION_PATTERN.search(current_body):
+        return SECTION_PATTERN.sub(section.rstrip(), current_body)
+    sep = "\n\n" if current_body.strip() else ""
+    return current_body.rstrip() + sep + section
 
 
 class Refused(Exception):
@@ -478,13 +522,47 @@ def selfcheck() -> None:
         except Refused as exc:
             assert "3.1.0" in str(exc), exc
 
+    # 7. wrap_section: the markers actually bracket the content, verbatim,
+    #    so shift-left.yml's own splice step has an exact span to find.
+    wrapped = wrap_section("some *markdown*\n")
+    assert wrapped.startswith(SECTION_START + "\n"), wrapped
+    assert wrapped.rstrip().endswith(SECTION_END), wrapped
+    assert "some *markdown*" in wrapped, wrapped
+
+    # 8. splice_body: first run appends after Renovate's own content; a
+    #    re-run on the same PR replaces the prior span in place, verbatim,
+    #    and never touches anything outside the markers.
+    renovate_body = "Bumps platform from v1.0.0 to v1.1.0.\n\n---\n\nRenovate config help."
+    first = splice_body(renovate_body, wrap_section("run 1 evidence"))
+    assert renovate_body in first and "run 1 evidence" in first, first
+    assert first.count(SECTION_START) == 1, first
+
+    second = splice_body(first, wrap_section("run 2 evidence, superseding run 1"))
+    assert "run 1 evidence" not in second, second
+    assert "run 2 evidence, superseding run 1" in second, second
+    assert renovate_body in second, second  # Renovate's own content, untouched across re-runs
+    assert second.count(SECTION_START) == 1, second
+
+    empty_first = splice_body("", wrap_section("only evidence, no prior body"))
+    assert empty_first.startswith(SECTION_START), empty_first  # no spurious leading blank lines
+
     print("PASS: adopter_gate.py selfcheck (declared_bump, diff_versions, compose -- retirement=major, "
-          "strictest-wins, verification-failure-refuses)")
+          "strictest-wins, verification-failure-refuses, wrap_section brackets the markers, "
+          "splice_body appends on a first run and replaces in place on a re-run without touching "
+          "Renovate's own content)")
 
 
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--selfcheck", action="store_true")
+    ap.add_argument("--splice-body", action="store_true",
+                     help="splice mode (ticket cs-29): merge --section into --current-body "
+                          "between the SECTION_START/SECTION_END markers, write --out-body. "
+                          "Does none of the gate's own work -- shift-left.yml's own step "
+                          "provides --current-body fresh from `gh pr view` each run.")
+    ap.add_argument("--current-body", type=Path)
+    ap.add_argument("--section", type=Path)
+    ap.add_argument("--out-body", type=Path)
     ap.add_argument("--ludlow-dir", type=Path)
     ap.add_argument("--platform-dir", type=Path)
     ap.add_argument("--old-ref")
@@ -498,6 +576,13 @@ def main(argv: list[str]) -> int:
         selfcheck()
         return 0
 
+    if args.splice_body:
+        missing = [n for n in ("current_body", "section", "out_body") if getattr(args, n) is None]
+        if missing:
+            ap.error(f"--splice-body needs: {', '.join('--' + m.replace('_','-') for m in missing)}")
+        args.out_body.write_text(splice_body(args.current_body.read_text(), args.section.read_text()))
+        return 0
+
     missing = [n for n in ("ludlow_dir", "platform_dir", "old_ref", "new_ref", "out_comment")
                if getattr(args, n) is None]
     if missing:
@@ -505,7 +590,7 @@ def main(argv: list[str]) -> int:
 
     code, comment = run(args.ludlow_dir, args.platform_dir, args.old_ref, args.new_ref,
                          args.identity_regexp, args.issuer)
-    args.out_comment.write_text(comment)
+    args.out_comment.write_text(wrap_section(comment))
     return code
 
 
