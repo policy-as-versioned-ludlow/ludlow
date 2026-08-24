@@ -149,6 +149,21 @@ def splice_body(current_body: str, section: str) -> str:
         # tags. A lambda sidesteps that interpretation entirely; the
         # replacement text lands verbatim, whatever it contains.
         return SECTION_PATTERN.sub(lambda _m: section.rstrip(), current_body)
+    # No COMPLETE start...end pair. GitHub caps PR body length; ticket 29's
+    # own acceptance criteria mandate rendering a lot (full per-policy
+    # movement, the whole not-looked-at list, every hole, derived limits,
+    # the per-institution matrix), so a long enough render can get the body
+    # truncated by GitHub mid-section -- SECTION_START saved, SECTION_END
+    # never reaches the saved body. Treat an unpaired SECTION_START (found,
+    # with no END anywhere after it) the same as a complete pair: replace
+    # from that orphaned START to the end of the body, rather than
+    # appending past it and accumulating a duplicate/orphaned span on every
+    # future run forever.
+    start_idx = current_body.find(SECTION_START)
+    if start_idx != -1:
+        prefix = current_body[:start_idx].rstrip()
+        sep = "\n\n" if prefix else ""
+        return prefix + sep + section
     sep = "\n\n" if current_body.strip() else ""
     return current_body.rstrip() + sep + section
 
@@ -183,14 +198,22 @@ def read_pin(ludlow_dir: Path, ref: str) -> dict:
     text = git_show(ludlow_dir, ref, "gitops/platform/platform-pin.yaml")
     if text is None:
         raise Refused(f"gitops/platform/platform-pin.yaml not found at {ref}")
-    doc = next(
-        (d for d in yaml.safe_load_all(text) if d and d.get("kind") == "GitRepository"
-         and d.get("metadata", {}).get("name") == "platform"),
-        None,
-    )
+    try:
+        doc = next(
+            (d for d in yaml.safe_load_all(text) if d and d.get("kind") == "GitRepository"
+             and d.get("metadata", {}).get("name") == "platform"),
+            None,
+        )
+    except yaml.YAMLError as exc:
+        raise Refused(f"platform-pin.yaml at {ref} is not valid YAML: {exc}") from exc
     if doc is None:
         raise Refused(f"no platform GitRepository object in platform-pin.yaml at {ref}")
-    ref_block = doc["spec"]["ref"]
+    spec = doc.get("spec")
+    if not isinstance(spec, dict):
+        raise Refused(f"platform-pin.yaml at {ref}: GitRepository object has no spec")
+    ref_block = spec.get("ref")
+    if not isinstance(ref_block, dict):
+        raise Refused(f"platform-pin.yaml at {ref}: GitRepository spec has no ref")
     tag, commit = ref_block.get("tag"), ref_block.get("commit")
     if not tag or not commit:
         raise Refused(f"platform-pin.yaml at {ref} is missing spec.ref.tag or spec.ref.commit")
@@ -229,8 +252,20 @@ def read_versions(platform_dir: Path, commit: str) -> list[dict]:
     text = git_show(platform_dir, commit, "distribution/versions.yaml")
     if text is None:
         raise Refused(f"distribution/versions.yaml not found in platform at {commit}")
-    doc = yaml.safe_load(text)
-    return doc["spec"]["inputs"][0]["versions"]
+    try:
+        doc = yaml.safe_load(text)
+    except yaml.YAMLError as exc:
+        raise Refused(f"platform's distribution/versions.yaml at {commit} is not valid YAML: {exc}") from exc
+    try:
+        versions = doc["spec"]["inputs"][0]["versions"]
+    except (KeyError, IndexError, TypeError) as exc:
+        raise Refused(
+            f"platform's distribution/versions.yaml at {commit} is malformed "
+            f"(expected spec.inputs[0].versions): {exc}"
+        ) from exc
+    if not isinstance(versions, list):
+        raise Refused(f"platform's distribution/versions.yaml at {commit}: spec.inputs[0].versions is not a list")
+    return versions
 
 
 def diff_versions(old: list[dict], new: list[dict]) -> tuple[list[str], list[dict]]:
@@ -284,11 +319,23 @@ def verify_evidence(platform_dir: Path, commit: str, version: str,
             f"({result.stderr.strip() or result.stdout.strip()})"
         )
 
-    doc = json.loads(evidence_text)
-    if doc.get("outcome", {}).get("result") != "passed":
+    try:
+        doc = json.loads(evidence_text)
+    except json.JSONDecodeError as exc:
+        raise Refused(
+            f"policy {version}: evidence at computed-semver/evidence/{version}.json "
+            f"(commit {commit}) is not valid JSON: {exc}"
+        ) from exc
+    if not isinstance(doc, dict):
+        raise Refused(
+            f"policy {version}: evidence at computed-semver/evidence/{version}.json "
+            f"(commit {commit}) is not a JSON object"
+        )
+    outcome = doc.get("outcome")
+    if not isinstance(outcome, dict) or outcome.get("result") != "passed":
         raise Refused(
             f"policy {version}: verified evidence itself does not record outcome=passed "
-            f"({doc.get('outcome')})"
+            f"({outcome!r})"
         )
     return doc
 
@@ -430,7 +477,15 @@ def run(ludlow_dir: Path, platform_dir: Path, old_ref: str, new_ref: str,
         identity_regexp: str, issuer: str) -> tuple[int, str]:
     """Returns (exit_code, comment_markdown). Never raises -- every failure
     mode becomes a refusal comment and exit 1, so the caller always has
-    something to post."""
+    something to post. This institution does not control platform's YAML/
+    JSON shape staying exactly as read_pin/read_versions/verify_evidence
+    expect it forever, so besides those functions' own specific, named
+    Refused guards, the broadened except below is a safety net: any
+    KeyError/IndexError/TypeError/json.JSONDecodeError/yaml.YAMLError that
+    still escapes (e.g. from render_comment's own indexing into platform's
+    evidence document, once compose() has already verified its signature)
+    becomes a refusal naming the exception, never an unhandled traceback
+    out of a required status check."""
     old_pin = new_pin = None
     try:
         old_pin = read_pin(ludlow_dir, old_ref)
@@ -475,6 +530,13 @@ def run(ludlow_dir: Path, platform_dir: Path, old_ref: str, new_ref: str,
     except Refused as exc:
         print(f"REFUSE: {exc}")
         return 1, write_refusal_comment(str(exc), old_pin, new_pin)
+    except (KeyError, IndexError, TypeError, AttributeError, json.JSONDecodeError, yaml.YAMLError) as exc:
+        reason = (
+            f"platform's data was malformed in a way this gate did not specifically "
+            f"anticipate ({type(exc).__name__}: {exc}) -- refusing rather than crashing"
+        )
+        print(f"REFUSE: {reason}")
+        return 1, write_refusal_comment(reason, old_pin, new_pin)
 
 
 def selfcheck() -> None:
@@ -595,12 +657,214 @@ def selfcheck() -> None:
     assert "run 2, still no crash" in rerun_over_backslashes, rerun_over_backslashes
     assert rerun_over_backslashes.count(SECTION_START) == 1, rerun_over_backslashes
 
+    # 8c. splice_body: an ORPHANED SECTION_START with no matching END -- the
+    #     shape GitHub's PR-body length cap leaves behind when a long enough
+    #     evidence render (ticket 29's own acceptance criteria mandate a lot
+    #     of content: full per-policy movement, the whole not-looked-at
+    #     list, every hole, derived limits, the per-institution matrix) gets
+    #     truncated by GitHub mid-section on a prior run. Confirm first that
+    #     the PAIRED regex genuinely cannot see it (that's the bug: without
+    #     the orphaned-START fallback, splice_body would silently APPEND a
+    #     fresh section past the truncated one instead of replacing it, and
+    #     the body would accumulate a duplicate/orphaned span on every
+    #     future run forever -- never diffable again, ticket 29's own
+    #     criterion). Then prove the fixed splice_body repairs it: replaces
+    #     in place, doesn't duplicate, doesn't lose Renovate's own content.
+    truncated_evidence = "evidence that never reached its own closing marker"
+    truncated_body = renovate_body + "\n\n" + SECTION_START + "\n" + truncated_evidence
+    assert SECTION_PATTERN.search(truncated_body) is None, (
+        "setup: the paired start...end regex must NOT find a complete span in a "
+        "truncated body -- otherwise this test isn't reproducing truncation at all"
+    )
+
+    repaired = splice_body(truncated_body, wrap_section("recovered evidence, run 2"))
+    assert repaired.count(SECTION_START) == 1, repaired  # not duplicated/stacked
+    assert truncated_evidence not in repaired, repaired  # orphaned span replaced, not appended-past
+    assert "recovered evidence, run 2" in repaired, repaired
+    assert renovate_body in repaired, repaired  # Renovate's own content, still untouched
+    assert repaired.rstrip().endswith(SECTION_END), repaired  # well-formed again after repair
+
+    # A second truncation-then-repair cycle must not re-accumulate either --
+    # the orphaned-START fallback has to keep working on whatever the LAST
+    # run left behind, not just a body truncated exactly once.
+    re_truncated = repaired.split(SECTION_END)[0] + "\nsomehow truncated again"
+    assert SECTION_PATTERN.search(re_truncated) is None, "setup: second truncation must also break the pair"
+    re_repaired = splice_body(re_truncated, wrap_section("recovered evidence, run 3"))
+    assert re_repaired.count(SECTION_START) == 1, re_repaired
+    assert "recovered evidence, run 3" in re_repaired, re_repaired
+    assert renovate_body in re_repaired, re_repaired
+
+    # 9. read_pin: a real git repo whose platform-pin.yaml's GitRepository
+    #    object is missing spec.ref entirely -- platform/Renovate's own YAML
+    #    shape is not this institution's to guarantee forever (bug #2).
+    #    Before the fix this was a bare `doc["spec"]["ref"]` KeyError,
+    #    uncaught by run()'s Refused-only except. Must refuse with a clear,
+    #    specific message, never an unhandled traceback.
+    def _git(repo: Path, *args: str) -> None:
+        r = _run(["git", "-C", str(repo), *args])
+        assert r.returncode == 0, f"git {args} failed: {r.stderr}"
+
+    with tempfile.TemporaryDirectory() as td:
+        repo = Path(td)
+        _git(repo, "init", "-q", "-b", "main")
+        _git(repo, "config", "user.email", "t@example.invalid")
+        _git(repo, "config", "user.name", "t")
+        _git(repo, "config", "commit.gpgsign", "false")
+        (repo / "gitops" / "platform").mkdir(parents=True)
+        (repo / "gitops" / "platform" / "platform-pin.yaml").write_text(
+            "apiVersion: source.toolkit.fluxcd.io/v1\n"
+            "kind: GitRepository\n"
+            "metadata: { name: platform, namespace: flux-system }\n"
+            "spec: {}\n"  # missing ref entirely -- the malformed shape
+        )
+        _git(repo, "add", "-A")
+        _git(repo, "commit", "-q", "-m", "malformed pin, no spec.ref")
+        try:
+            read_pin(repo, "HEAD")
+            assert False, "a pin with no spec.ref must refuse, not silently return or crash"
+        except Refused as exc:
+            assert "ref" in str(exc), exc
+        except Exception as exc:  # this IS bug #2 if it happens
+            assert False, f"read_pin raised {type(exc).__name__} instead of Refused: {exc}"
+
+        # run() end-to-end over the same malformed pin: exit 1, a refusal
+        # comment, never a raised exception out of the top level.
+        code, comment = run(repo, repo, "HEAD", "HEAD", EXPECTED_IDENTITY_REGEXP, EXPECTED_ISSUER)
+        assert code == 1, code
+        assert "REFUSED" in comment, comment
+
+    # 10. read_versions: distribution/versions.yaml missing spec.inputs
+    #     entirely -- same reasoning, platform's own file, not this
+    #     institution's to guarantee forever. Before the fix this was a
+    #     bare `doc["spec"]["inputs"][0]["versions"]` KeyError.
+    with tempfile.TemporaryDirectory() as td:
+        repo = Path(td)
+        _git(repo, "init", "-q", "-b", "main")
+        _git(repo, "config", "user.email", "t@example.invalid")
+        _git(repo, "config", "user.name", "t")
+        _git(repo, "config", "commit.gpgsign", "false")
+        (repo / "distribution").mkdir(parents=True)
+        (repo / "distribution" / "versions.yaml").write_text(
+            "apiVersion: fluxcd.controlplane.io/v1\n"
+            "kind: ResourceSet\n"
+            "metadata: { name: policy-versions, namespace: flux-system }\n"
+            "spec: {}\n"  # missing inputs entirely
+        )
+        _git(repo, "add", "-A")
+        _git(repo, "commit", "-q", "-m", "malformed versions.yaml, no spec.inputs")
+        commit = _run(["git", "-C", str(repo), "rev-parse", "HEAD"]).stdout.strip()
+        try:
+            read_versions(repo, commit)
+            assert False, "versions.yaml missing spec.inputs must refuse, not crash"
+        except Refused as exc:
+            assert "versions.yaml" in str(exc), exc
+        except Exception as exc:  # this IS bug #2 if it happens
+            assert False, f"read_versions raised {type(exc).__name__} instead of Refused: {exc}"
+
+    # 11. verify_evidence: platform's committed evidence file is not valid
+    #     JSON at all -- reachable in principle (a hand-edited or corrupted
+    #     evidence commit), previously a bare `json.loads()` JSONDecodeError.
+    #     cosign itself is faked (returns success) so this test exercises
+    #     ONLY the JSON-parsing guard added for bug #2, not cosign wiring
+    #     (already proved for real in verify-adopter-gate.sh Part C).
+    real_run = _run
+
+    def fake_run(args, **kw):
+        if args and args[0] == "cosign":
+            return subprocess.CompletedProcess(args, 0, stdout="", stderr="")
+        return real_run(args, **kw)
+
+    with tempfile.TemporaryDirectory() as td:
+        repo = Path(td)
+        _git(repo, "init", "-q", "-b", "main")
+        _git(repo, "config", "user.email", "t@example.invalid")
+        _git(repo, "config", "user.name", "t")
+        _git(repo, "config", "commit.gpgsign", "false")
+        (repo / "computed-semver" / "evidence").mkdir(parents=True)
+        (repo / "computed-semver" / "evidence" / "3.0.0.json").write_text("{not valid json")
+        (repo / "computed-semver" / "evidence" / "3.0.0.json.bundle").write_text("irrelevant -- cosign is faked below")
+        _git(repo, "add", "-A")
+        _git(repo, "commit", "-q", "-m", "malformed evidence JSON")
+        commit = _run(["git", "-C", str(repo), "rev-parse", "HEAD"]).stdout.strip()
+
+        with mock.patch("__main__._run", side_effect=fake_run), tempfile.TemporaryDirectory() as wd:
+            try:
+                verify_evidence(repo, commit, "3.0.0", "x", "y", Path(wd))
+                assert False, "malformed evidence JSON must refuse, not silently pass or crash"
+            except Refused as exc:
+                assert "3.0.0" in str(exc) and "JSON" in str(exc), exc
+            except Exception as exc:  # this IS bug #2 if it happens
+                assert False, f"verify_evidence raised {type(exc).__name__} instead of Refused: {exc}"
+
+    # 12. run(): a raw, unanticipated exception from deep inside the happy
+    #     path (simulating a shape this gate's specific guards did not
+    #     foresee -- e.g. render_comment indexing into an evidence field
+    #     platform's JSON doesn't carry) must still come back as exit 1 with
+    #     a refusal, never propagate out of run() uncaught. This is run()'s
+    #     own docstring claim ("never raises"), now genuinely true for more
+    #     than just Refused -- the safety-net except clause, not a specific
+    #     guard, is what catches this one.
+    with tempfile.TemporaryDirectory() as td:
+        platform_repo = Path(td) / "platform"
+        ludlow_repo = Path(td) / "ludlow"
+        for repo in (platform_repo, ludlow_repo):
+            repo.mkdir()
+            _git(repo, "init", "-q", "-b", "main")
+            _git(repo, "config", "user.email", "t@example.invalid")
+            _git(repo, "config", "user.name", "t")
+            _git(repo, "config", "commit.gpgsign", "false")
+            _git(repo, "config", "tag.gpgsign", "false")
+
+        (platform_repo / "distribution").mkdir()
+        (platform_repo / "distribution" / "versions.yaml").write_text(
+            "apiVersion: fluxcd.controlplane.io/v1\nkind: ResourceSet\n"
+            "metadata: { name: policy-versions, namespace: flux-system }\n"
+            "spec: { inputs: [{ versions: [] }] }\n"
+        )
+        _git(platform_repo, "add", "-A")
+        _git(platform_repo, "commit", "-q", "-m", "v0.1.0")
+        _git(platform_repo, "tag", "v0.1.0")
+        p_old = _run(["git", "-C", str(platform_repo), "rev-parse", "HEAD"]).stdout.strip()
+        _git(platform_repo, "commit", "-q", "--allow-empty", "-m", "v1.0.0")
+        _git(platform_repo, "tag", "v1.0.0")
+        p_new = _run(["git", "-C", str(platform_repo), "rev-parse", "HEAD"]).stdout.strip()
+
+        (ludlow_repo / "gitops" / "platform").mkdir(parents=True)
+
+        def write_pin(tag: str, commit: str) -> None:
+            (ludlow_repo / "gitops" / "platform" / "platform-pin.yaml").write_text(
+                "apiVersion: source.toolkit.fluxcd.io/v1\nkind: GitRepository\n"
+                "metadata: { name: platform, namespace: flux-system }\n"
+                f'spec: {{ ref: {{ tag: "{tag}", commit: "{commit}" }} }}\n'
+            )
+
+        write_pin("v0.1.0", p_old)
+        _git(ludlow_repo, "add", "-A")
+        _git(ludlow_repo, "commit", "-q", "-m", "pin v0.1.0")
+        l_old = _run(["git", "-C", str(ludlow_repo), "rev-parse", "HEAD"]).stdout.strip()
+        write_pin("v1.0.0", p_new)
+        _git(ludlow_repo, "add", "-A")
+        _git(ludlow_repo, "commit", "-q", "-m", "bump pin to v1.0.0")
+        l_new = _run(["git", "-C", str(ludlow_repo), "rev-parse", "HEAD"]).stdout.strip()
+
+        with mock.patch("__main__.declared_bump", side_effect=KeyError("simulated_unanticipated_field")):
+            code, comment = run(ludlow_repo, platform_repo, l_old, l_new,
+                                 EXPECTED_IDENTITY_REGEXP, EXPECTED_ISSUER)
+        assert code == 1, code
+        assert "REFUSED" in comment, comment
+        assert "KeyError" in comment, comment
+
     print("PASS: adopter_gate.py selfcheck (declared_bump, diff_versions, compose -- retirement=major, "
           "strictest-wins, verification-failure-refuses, wrap_section brackets the markers, "
           "splice_body appends on a first run and replaces in place on a re-run without touching "
-          "Renovate's own content, and survives backslash-bearing evidence -- a Kyverno/CEL match "
-          "expression -- across two consecutive re-runs without re.sub() misreading it as a "
-          "backreference)")
+          "Renovate's own content, survives backslash-bearing evidence across two consecutive "
+          "re-runs without re.sub() misreading it as a backreference, and repairs an ORPHANED "
+          "SECTION_START -- a GitHub PR-body-truncation shape -- in place across repeated "
+          "truncate/repair cycles instead of accumulating duplicate spans (bug #1); read_pin, "
+          "read_versions and verify_evidence each refuse with a specific message instead of "
+          "crashing on platform-shaped YAML/JSON this institution does not control, and run()'s "
+          "safety net catches even an unanticipated exception type and still returns a refusal, "
+          "never an unhandled traceback (bug #2))")
 
 
 def main(argv: list[str]) -> int:

@@ -209,7 +209,7 @@ jobs:
           code=$?
           set -e
           echo "exit_code=$code" >> "$GITHUB_OUTPUT"
-          exit 0   # never fail THIS step -- the comment must post either way; the next step enforces the verdict
+          exit 0   # never fail THIS step -- the evidence must land in the pull request body either way; the next step enforces the verdict
 
       - name: render the adopter-gate evidence into the pull request BODY (ticket cs-29 -- the body itself, see header)
         if: always() && steps.adopter-gate.outputs.exit_code != ''
@@ -226,5 +226,5 @@ jobs:
       - name: fail the required check if the adopter gate refused
         if: steps.adopter-gate.outputs.exit_code != '0'
         run: |
-          echo "FAIL: the adopter gate refused this pull request -- see the PR comment above for the composed bump and the verified evidence." >&2
+          echo "FAIL: the adopter gate refused this pull request -- see the adopter-gate section of this pull request's own BODY (spliced in by the previous step, ticket cs-29) for the composed bump and the verified evidence." >&2
           exit 1
