@@ -530,6 +530,20 @@ def run(ludlow_dir: Path, platform_dir: Path, old_ref: str, new_ref: str,
     except Refused as exc:
         print(f"REFUSE: {exc}")
         return 1, write_refusal_comment(str(exc), old_pin, new_pin)
+    except OSError as exc:
+        # A missing/broken local tool (verify_evidence's `cosign` subprocess call is
+        # the one reachable case: FileNotFoundError if cosign isn't on PATH) -- not
+        # malformed platform data, so it gets its own honest wording rather than the
+        # "platform's data was malformed" reason below. shift-left.yml's own cosign
+        # install step already fails first in the real wired CI (checksummed, no
+        # `set +e`), so this is a defence-in-depth guard for direct/future
+        # invocation, not the primary line of defence.
+        reason = (
+            f"a local tool this gate depends on could not be run "
+            f"({type(exc).__name__}: {exc}) -- refusing rather than crashing"
+        )
+        print(f"REFUSE: {reason}")
+        return 1, write_refusal_comment(reason, old_pin, new_pin)
     except (KeyError, IndexError, TypeError, AttributeError, json.JSONDecodeError, yaml.YAMLError) as exc:
         reason = (
             f"platform's data was malformed in a way this gate did not specifically "
