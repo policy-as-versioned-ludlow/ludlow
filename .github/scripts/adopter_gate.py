@@ -29,9 +29,17 @@ answer to the same question has no tie-breaker"). Instead it:
      identity-pinned against EXPECTED_IDENTITY_REGEXP -- a constant this
      repo holds itself (see shift-left.yml's own copy; the identity is NOT
      read from anything platform supplies at verification time). Offline:
-     the bundle cosign sign-blob produced carries its own Rekor inclusion
-     proof, exactly the pattern release.yml already uses for the release
-     tag's own gitsign signature.
+     the bundle cosign sign-blob produced carries its own certificate,
+     signature and Rekor inclusion proof, but verifying THOSE still needs
+     the Sigstore trust roots (the Fulcio CA, the Rekor/CT log keys) --
+     without them cosign fetches a live TUF root over the network. This
+     repo pins that root too, the same shape release.yml's gitsign check
+     already pins Rekor offline: TRUSTED_ROOT_PATH below, a trusted_root.
+     json committed next to this script (`cosign initialize` once, then
+     copy $HOME/.sigstore/root/*/targets/trusted_root.json here), passed
+     as --trusted-root. Refresh it the way any pinned trust material is
+     refreshed -- deliberately, by committing a new copy -- never by
+     letting cosign reach out live.
   5. Composes: the strictest bump across every retirement (major) and every
      changed version's own verified `bump.computed` -- cross-party
      composition is out of scope (spec.md, "Out of Scope"; see also
@@ -95,6 +103,13 @@ EXPECTED_IDENTITY_REGEXP = (
 )
 EXPECTED_ISSUER = "https://token.actions.githubusercontent.com"
 
+# The pinned Sigstore trust root (Fulcio CA, Rekor/CT log keys) -- committed
+# next to this script so `cosign verify-blob` never falls back to a live TUF
+# fetch. Regenerate with `cosign initialize` then copy the fetched
+# $HOME/.sigstore/root/*/targets/trusted_root.json over this file; that is a
+# deliberate, reviewed commit, same as any other pin in this repo.
+TRUSTED_ROOT_PATH = Path(__file__).resolve().parent / "trusted_root.json"
+
 RANK = {"none": 0, "patch": 1, "minor": 2, "major": 3}
 RANK_NAME = {v: k for k, v in RANK.items()}
 
@@ -126,7 +141,14 @@ def splice_body(current_body: str, section: str) -> str:
     so shift-left.yml's own step is just "fetch, splice, write back" with no
     embedded multi-line script of its own -- see --splice-body below."""
     if SECTION_PATTERN.search(current_body):
-        return SECTION_PATTERN.sub(section.rstrip(), current_body)
+        # A callable replacement, never a raw string: re.sub() treats a
+        # string replacement's backslashes as backreferences/escapes
+        # (\d, \1, ...), and evidence content routinely carries a Kyverno/
+        # CEL match expression like `matches(image, '^v\d+\.\d+\.\d+$')` --
+        # exactly the pattern parse_semver() above uses on this repo's own
+        # tags. A lambda sidesteps that interpretation entirely; the
+        # replacement text lands verbatim, whatever it contains.
+        return SECTION_PATTERN.sub(lambda _m: section.rstrip(), current_body)
     sep = "\n\n" if current_body.strip() else ""
     return current_body.rstrip() + sep + section
 
@@ -241,9 +263,17 @@ def verify_evidence(platform_dir: Path, commit: str, version: str,
     evidence_path.write_text(evidence_text)
     bundle_path.write_text(bundle_text)
 
+    if not TRUSTED_ROOT_PATH.is_file():
+        raise Refused(
+            f"policy {version}: no committed Sigstore trust root at {TRUSTED_ROOT_PATH} -- "
+            "refusing rather than letting cosign fall back to a live TUF fetch"
+        )
+
     result = _run([
         "cosign", "verify-blob",
         f"--bundle={bundle_path}",
+        f"--trusted-root={TRUSTED_ROOT_PATH}",
+        "--new-bundle-format=true",  # required by cosign to honor --trusted-root at all
         f"--certificate-identity-regexp={identity_regexp}",
         f"--certificate-oidc-issuer={issuer}",
         str(evidence_path),
@@ -546,10 +576,31 @@ def selfcheck() -> None:
     empty_first = splice_body("", wrap_section("only evidence, no prior body"))
     assert empty_first.startswith(SECTION_START), empty_first  # no spurious leading blank lines
 
+    # 8b. splice_body: a re-run whose evidence carries backslashes -- a real
+    #     Kyverno/CEL match expression, exactly the idiom parse_semver() uses
+    #     on this repo's own tags -- must not be interpreted as re.sub()
+    #     backreferences/escapes (a raw-string replacement would raise
+    #     re.PatternError: bad escape \d on this exact input). The backslash
+    #     content must survive verbatim, and a SECOND re-run over it (the
+    #     replacement itself now containing markers) must still replace in
+    #     place, not choke on its own prior output.
+    backslashy = (
+        r"- `p.yaml` -- **major** -- via `matches(image, '^v\d+\.\d+\.\d+$')`"
+    )
+    with_backslashes = splice_body(renovate_body, wrap_section(backslashy))
+    assert backslashy in with_backslashes, with_backslashes
+    assert with_backslashes.count(SECTION_START) == 1, with_backslashes
+    rerun_over_backslashes = splice_body(with_backslashes, wrap_section("run 2, still no crash"))
+    assert backslashy not in rerun_over_backslashes, rerun_over_backslashes
+    assert "run 2, still no crash" in rerun_over_backslashes, rerun_over_backslashes
+    assert rerun_over_backslashes.count(SECTION_START) == 1, rerun_over_backslashes
+
     print("PASS: adopter_gate.py selfcheck (declared_bump, diff_versions, compose -- retirement=major, "
           "strictest-wins, verification-failure-refuses, wrap_section brackets the markers, "
           "splice_body appends on a first run and replaces in place on a re-run without touching "
-          "Renovate's own content)")
+          "Renovate's own content, and survives backslash-bearing evidence -- a Kyverno/CEL match "
+          "expression -- across two consecutive re-runs without re.sub() misreading it as a "
+          "backreference)")
 
 
 def main(argv: list[str]) -> int:

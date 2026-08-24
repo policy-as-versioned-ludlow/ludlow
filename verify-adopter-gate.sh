@@ -307,9 +307,132 @@ cat "$scratch/c2.out"
 grep -qi "no committed evidence" "$scratch/c2.out" || fail "C2: refusal reason does not say evidence is missing"
 echo "OK: a changed version with no committed evidence file is refused before cosign is even invoked"
 
+# ---------------------------------------------------------------------------
+say "Part D: splice_body via the REAL CLI, with backslash-bearing evidence -- the exact re.sub() hazard"
+# ---------------------------------------------------------------------------
+# A Kyverno/CEL match expression -- the same idiom parse_semver() uses on
+# this repo's own tags -- reaching the pull request body via splice_body().
+# A raw-string re.sub() replacement misreads \d as a backreference and
+# raises re.PatternError on this exact input; adopter_gate.py's selfcheck
+# proves the pure function survives it, this proves the real --splice-body
+# CLI shift-left.yml actually invokes does too, and that a re-run replaces
+# the prior span in place rather than crashing before it gets that far.
+
+printf 'Bumps platform from v1.0.0 to v1.1.0.\n\n---\n\nRenovate config help.\n' > "$scratch/d-current-body.md"
+printf '%s\n' \
+  '<!-- cs-29:adopter-gate:start -->' \
+  "- \`p.yaml\` -- **major** -- via \`matches(image, '^v\\\\d+\\\\.\\\\d+\\\\.\\\\d+\$')\`" \
+  '<!-- cs-29:adopter-gate:end -->' \
+  > "$scratch/d-section.md"
+grep -q '\\d' "$scratch/d-section.md" || fail "D setup: fixture section does not actually contain a backslash-escape"
+
+set +e
+python3 "$GATE" --splice-body --current-body "$scratch/d-current-body.md" \
+  --section "$scratch/d-section.md" --out-body "$scratch/d-out1.md" > "$scratch/d1.out" 2>&1
+d1_code=$?
+set -e
+cat "$scratch/d1.out"
+[ "$d1_code" -eq 0 ] || fail "D1: --splice-body crashed on backslash-bearing evidence, got exit $d1_code (this is the reported bug if it fails)"
+grep -qF 'Renovate config help.' "$scratch/d-out1.md" || fail "D1: Renovate's own body content is missing after the first splice"
+grep -q '\\d' "$scratch/d-out1.md" || fail "D1: the backslash-bearing expression did not survive into the spliced body"
+echo "OK: first splice (append) survives backslash-bearing evidence, real CLI, exit 0"
+
+set +e
+python3 "$GATE" --splice-body --current-body "$scratch/d-out1.md" \
+  --section "$scratch/d-section.md" --out-body "$scratch/d-out2.md" > "$scratch/d2.out" 2>&1
+d2_code=$?
+set -e
+cat "$scratch/d2.out"
+[ "$d2_code" -eq 0 ] || fail "D2: re-run --splice-body crashed on backslash-bearing evidence (re.PatternError: bad escape \\d is exactly this bug), got exit $d2_code"
+diff -q "$scratch/d-out1.md" "$scratch/d-out2.md" > /dev/null || fail "D2: re-run over identical evidence must replace the span in place, byte-identical -- got a diff"
+[ "$(grep -c 'cs-29:adopter-gate:start' "$scratch/d-out2.md")" -eq 1 ] || fail "D2: re-run must not nest or duplicate the markers"
+echo "OK: re-run replaces the prior span in place, byte-identical, markers not duplicated -- real CLI, real re.sub(), backslashes and all"
+
+# ---------------------------------------------------------------------------
+say "Part E: cosign verify-blob is genuinely offline -- committed trusted_root.json, egress blocked"
+# ---------------------------------------------------------------------------
+# Proves the claim in adopter_gate.py's own module docstring and this
+# ticket's acceptance criterion ("identity-pinned and offline") against the
+# real binary, not just against a proxy for it: with the committed
+# .github/scripts/trusted_root.json wired in via --trusted-root, cosign
+# verify-blob does NOT reach the network at all, even when the run's own
+# egress is hard-blocked -- contrasted directly against the SAME invocation
+# with --trusted-root removed, which times out trying to fetch a live TUF
+# root the moment egress is blocked (this is the exact failure the review
+# reproduced against the previously-shipped code).
+#
+# The gate's own real path is keyless (Fulcio-certificate identity); minting
+# a genuine Fulcio-signed bundle needs a live GitHub Actions OIDC token that
+# does not exist on this machine (see the file header). --trusted-root's
+# offline mechanics do not depend on key vs. keyless -- cosign loads the
+# trust material before it ever looks at the certificate or key -- so a
+# locally key-signed bundle proves the offline property for real, and this
+# part is explicit that the keyless *accept* path itself stays CI-only.
+
+TRUSTED_ROOT="$HERE/.github/scripts/trusted_root.json"
+[ -s "$TRUSTED_ROOT" ] || fail "E setup: $TRUSTED_ROOT is missing or empty -- adopter_gate.py cannot verify offline without it"
+grep -q -- '--trusted-root=' "$GATE" || fail "E setup: adopter_gate.py no longer passes --trusted-root to cosign verify-blob"
+grep -q 'TRUSTED_ROOT_PATH' "$GATE" || fail "E setup: adopter_gate.py no longer wires a committed TRUSTED_ROOT_PATH"
+
+keydir="$scratch/e-keys"
+mkdir -p "$keydir"
+( cd "$keydir" && COSIGN_PASSWORD="" cosign generate-key-pair > /dev/null 2>&1 )
+echo "genuinely offline trust-root proof" > "$keydir/blob.txt"
+( cd "$keydir" && COSIGN_PASSWORD="" cosign sign-blob --key cosign.key --yes --bundle blob.txt.bundle blob.txt > /dev/null 2>&1 )
+[ -s "$keydir/blob.txt.bundle" ] || fail "E setup: local key-signed bundle was not produced"
+
+# A bogus, unreachable HTTPS proxy -- deterministic egress failure, no
+# reliance on this sandbox's own firewall or DNS. Never reused outside this
+# subshell's env.
+BLOCKED_PROXY="http://127.0.0.1:1"
+
+echo
+echo "-- E1: WITHOUT --trusted-root, blocked egress -- must fail on the network, not on the signature --"
+set +e
+e1_out=$(HOME="$scratch/e-home1" HTTPS_PROXY="$BLOCKED_PROXY" timeout 15 \
+  cosign verify-blob --bundle="$keydir/blob.txt.bundle" --key="$keydir/cosign.pub" \
+  --new-bundle-format=true "$keydir/blob.txt" 2>&1)
+e1_code=$?
+set -e
+echo "$e1_out"
+[ "$e1_code" -ne 0 ] || fail "E1: expected a network failure with no trust root pinned and egress blocked, got exit 0"
+echo "$e1_out" | grep -qi "TUF\|tuf-repo-cdn\|dial tcp\|connection refused" \
+  || fail "E1: failure did not name a TUF/network cause -- this test no longer reproduces the reported bug"
+echo "OK: reproduced the reported bug -- no --trusted-root means cosign tries the network and fails closed when it's blocked"
+
+echo
+echo "-- E2: WITH --trusted-root (the committed file), blocked egress -- must verify, no network attempt at all --"
+set +e
+e2_out=$(HOME="$scratch/e-home2" HTTPS_PROXY="$BLOCKED_PROXY" timeout 15 \
+  cosign verify-blob --bundle="$keydir/blob.txt.bundle" --key="$keydir/cosign.pub" \
+  --trusted-root="$TRUSTED_ROOT" --new-bundle-format=true "$keydir/blob.txt" 2>&1)
+e2_code=$?
+set -e
+echo "$e2_out"
+[ "$e2_code" -eq 0 ] || fail "E2: expected successful offline verification with the committed trusted root, got exit $e2_code"
+echo "$e2_out" | grep -qi "TUF\|dial tcp\|connection refused" \
+  && fail "E2: cosign still attempted a network call despite --trusted-root -- not actually offline"
+echo "OK: --trusted-root, egress blocked -- cosign verified successfully with zero network attempts"
+
+echo
+echo "-- E3: WITH --trusted-root, egress blocked, WRONG key -- still a real, deterministic refusal, not a false accept --"
+( cd "$keydir" && COSIGN_PASSWORD="" cosign generate-key-pair --output-key-prefix wrong > /dev/null 2>&1 )
+set +e
+e3_out=$(HOME="$scratch/e-home3" HTTPS_PROXY="$BLOCKED_PROXY" timeout 15 \
+  cosign verify-blob --bundle="$keydir/blob.txt.bundle" --key="$keydir/wrong.pub" \
+  --trusted-root="$TRUSTED_ROOT" --new-bundle-format=true "$keydir/blob.txt" 2>&1)
+e3_code=$?
+set -e
+echo "$e3_out"
+[ "$e3_code" -ne 0 ] || fail "E3: verification with the WRONG key must not pass, got exit 0"
+echo "OK: offline verification against the committed trust root still genuinely refuses a signature/key mismatch"
+
 echo
 echo "PASS: verify-adopter-gate.sh -- identity regexp (match/reject/rename-breaks-it), resolved-commit refusal,"
 echo "      retirement-forces-major, composed-major fails the check, weaker-than-declared is informational-only,"
-echo "      and the real cosign binary genuinely refuses an invalid bundle and a missing one -- all real git,"
-echo "      real YAML, real cosign, offline. NOT exercised here (CI-only, confirmed): cosign accepting a"
-echo "      genuinely valid Fulcio-signed bundle -- no ambient OIDC credential exists on this machine."
+echo "      real cosign refuses an invalid bundle and a missing one, --splice-body survives backslash-bearing"
+echo "      evidence across a first run and a re-run without crashing or duplicating markers, and cosign"
+echo "      verify-blob is proven genuinely offline against the real binary with egress hard-blocked (contrasted"
+echo "      directly against the same call without --trusted-root, which fails on the network the moment egress"
+echo "      is blocked) -- all real git, real YAML, real cosign. NOT exercised here (CI-only, confirmed): cosign"
+echo "      accepting a genuinely valid Fulcio-signed bundle -- no ambient OIDC credential exists on this machine."
