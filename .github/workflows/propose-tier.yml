@@ -99,11 +99,18 @@ jobs:
           "
 
       - name: run the proposer -- reads ludlow's own composed/evidence.json, lands PR or issue
+        # platform-pin.yaml still pins v0.1.0, a tag cut before
+        # platform/wargamer/tier_pr.py existed -- skip (not fail) until
+        # platform ships a tag that has it and this pin is bumped.
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: policy-as-versioned-ludlow/ludlow
         run: |
           set -euo pipefail
+          if [ ! -f platform/wargamer/tier_pr.py ]; then
+            echo "SKIP: platform/wargamer/tier_pr.py isn't in the pinned platform tag (${{ steps.pin.outputs.tag }}) yet -- wargamer/ ships once platform cuts a release that includes it and this repo's platform-pin.yaml is bumped to that tag (ticket 17)." >&2
+            exit 0
+          fi
           git -C ludlow config user.email "wargamer-proposer@policy-as-versioned-ludlow.invalid"
           git -C ludlow config user.name "wargamer proposer"
           python3 platform/wargamer/tier_pr.py run \
