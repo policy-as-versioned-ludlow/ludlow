@@ -221,11 +221,22 @@ jobs:
           set -euo pipefail
           pip install --quiet pyyaml
           set +e
+          # ticket 18 / ADR-0011: --composed-base-ref/--composed-head-ref
+          # make ludlow's own composed/evidence.json member set the
+          # subject, not platform's raw distribution/versions.yaml array.
+          # Reusing head.sha here (not "HEAD") on purpose -- unlike
+          # driftwood/tuppence's default pull_request checkout (which lands
+          # on GitHub's own synthetic merge commit, leaving head.sha
+          # unfetched as its own object), ludlow's checkout step above
+          # explicitly pins `ref: head.sha`, so head.sha genuinely IS what
+          # is checked out and is a real, locally addressable commit.
           python3 ludlow/.github/scripts/adopter_gate.py \
             --ludlow-dir ludlow \
             --platform-dir platform \
             --old-ref "${{ github.event.pull_request.base.sha }}" \
             --new-ref "${{ github.event.pull_request.head.sha }}" \
+            --composed-base-ref "${{ github.event.pull_request.base.sha }}" \
+            --composed-head-ref "${{ github.event.pull_request.head.sha }}" \
             --out-comment adopter-gate-comment.md \
             --identity-regexp "${ADOPTER_GATE_IDENTITY_REGEXP}" \
             --issuer "${ADOPTER_GATE_ISSUER}"

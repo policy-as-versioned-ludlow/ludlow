@@ -268,6 +268,36 @@ def read_versions(platform_dir: Path, commit: str) -> list[dict]:
     return versions
 
 
+def versions_from_composed_evidence(ludlow_dir: Path, ref: str) -> list[dict]:
+    """ADR-0011 (policy-composition ticket 18): 'the adopter gate reads the
+    composed artefact as its subject.' The set of live policy versions THIS
+    institution's own signed composed/evidence.json records as members, at
+    `ref` (a commit-ish in ludlow's own repo -- ticket 18's compose-check
+    job keeps that file fresh and byte-verified on every pull request).
+    Returned in read_versions()'s own shape (a list of {"version", "commit"})
+    so diff_versions() needs no change at all; `commit` is always the literal
+    string "HEAD" here -- composition.py's evidence document has no notion
+    of a per-version source commit, and verify_evidence() needs SOME ref to
+    read platform's evidence file at, which is whatever this run already has
+    platform_dir checked out to (the pull request's own new pin tag). Two
+    "HEAD" values compare equal in diff_versions()'s own "changed" test
+    (`e.get("commit") != old_by_v[v].get("commit")`), so a version present
+    at both ends is never spuriously flagged, and only a genuinely new
+    version (absent from old_by_v) is classified "changed". A platform-
+    machinery member (the orphan guard, the governed-namespace guard)
+    carries no `version` -- excluded, same as distribution/versions.yaml's
+    own array never lists it either."""
+    text = git_show(ludlow_dir, ref, "composed/evidence.json")
+    if text is None:
+        raise Refused(f"composed/evidence.json not found in ludlow's own repo at {ref}")
+    try:
+        doc = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise Refused(f"composed/evidence.json at {ref} is not valid JSON: {exc}") from exc
+    return [{"version": m["version"], "commit": "HEAD"}
+            for m in doc.get("members", []) if m.get("version") is not None]
+
+
 def diff_versions(old: list[dict], new: list[dict]) -> tuple[list[str], list[dict]]:
     old_by_v = {e["version"]: e for e in old}
     new_by_v = {e["version"]: e for e in new}
@@ -474,7 +504,8 @@ def write_refusal_comment(reason: str, old_pin: dict | None, new_pin: dict | Non
 
 
 def run(ludlow_dir: Path, platform_dir: Path, old_ref: str, new_ref: str,
-        identity_regexp: str, issuer: str) -> tuple[int, str]:
+        identity_regexp: str, issuer: str,
+        composed_base_ref: str | None = None, composed_head_ref: str | None = None) -> tuple[int, str]:
     """Returns (exit_code, comment_markdown). Never raises -- every failure
     mode becomes a refusal comment and exit 1, so the caller always has
     something to post. This institution does not control platform's YAML/
@@ -503,8 +534,19 @@ def run(ludlow_dir: Path, platform_dir: Path, old_ref: str, new_ref: str,
             return 0, render_comment(old_pin, new_pin, "none", "none", [], "platform pin unchanged in this PR.")
 
         declared = declared_bump(old_pin["tag"], new_pin["tag"])
-        old_versions = read_versions(platform_dir, old_pin["commit"])
-        new_versions = read_versions(platform_dir, new_pin["commit"])
+        # ADR-0011 (ticket 18): "the composed bump is computed after
+        # composition." When composed_base_ref/composed_head_ref are given,
+        # read added/retired from ludlow's OWN signed composed/evidence.json
+        # member set at those two commits, not platform's raw
+        # distribution/versions.yaml array directly. Falls back to the
+        # pre-ADR-0011 array-read path otherwise (kept for --selfcheck's own
+        # narrower fixtures and any caller not yet passing them).
+        if composed_base_ref is not None and composed_head_ref is not None:
+            old_versions = versions_from_composed_evidence(ludlow_dir, composed_base_ref)
+            new_versions = versions_from_composed_evidence(ludlow_dir, composed_head_ref)
+        else:
+            old_versions = read_versions(platform_dir, old_pin["commit"])
+            new_versions = read_versions(platform_dir, new_pin["commit"])
         retired, changed = diff_versions(old_versions, new_versions)
 
         with tempfile.TemporaryDirectory() as td:
@@ -868,6 +910,53 @@ def selfcheck() -> None:
         assert "REFUSED" in comment, comment
         assert "KeyError" in comment, comment
 
+    # 13. ADR-0011 (ticket 18): versions_from_composed_evidence + run()'s
+    #     composed_base_ref/composed_head_ref path -- a REAL two-commit
+    #     ludlow repo, no policy diff anywhere (only composed/evidence.json's
+    #     own member set changes between the two commits), proving a version
+    #     retired from the composed set classifies major end to end.
+    with tempfile.TemporaryDirectory() as td:
+        repo = Path(td)
+        _git(repo, "init", "-q", "-b", "main")
+        _git(repo, "config", "user.email", "t@example.invalid")
+        _git(repo, "config", "user.name", "t")
+        _git(repo, "config", "commit.gpgsign", "false")
+        (repo / "composed").mkdir()
+
+        def write_evidence(versions: list[str]) -> None:
+            doc = {"members": [{"name": f"member-{v}", "version": v} for v in versions]
+                              + [{"name": "policy-version-orphan-guard", "version": None}]}
+            (repo / "composed" / "evidence.json").write_text(json.dumps(doc))
+
+        write_evidence(["2.0.0", "3.0.0"])
+        _git(repo, "add", "-A")
+        _git(repo, "commit", "-q", "-m", "base: 2.0.0, 3.0.0 live")
+        base_sha = _run(["git", "-C", str(repo), "rev-parse", "HEAD"]).stdout.strip()
+
+        write_evidence(["3.0.0"])  # 2.0.0 retired, nothing added
+        _git(repo, "add", "-A")
+        _git(repo, "commit", "-q", "-m", "head: 2.0.0 retired, no policy diff")
+        head_sha = _run(["git", "-C", str(repo), "rev-parse", "HEAD"]).stdout.strip()
+
+        old_v = versions_from_composed_evidence(repo, base_sha)
+        new_v = versions_from_composed_evidence(repo, head_sha)
+        assert {e["version"] for e in old_v} == {"2.0.0", "3.0.0"}, old_v
+        assert {e["version"] for e in new_v} == {"3.0.0"}, new_v
+
+        retired, changed = diff_versions(old_v, new_v)
+        assert retired == ["2.0.0"], retired
+        assert changed == [], changed  # 3.0.0 survives with the same ("HEAD") commit -- not re-flagged
+
+        with mock.patch("__main__.verify_evidence", _Boom()):
+            composed, results = compose(retired, changed, Path("/nonexistent"), "x", "y", Path("/tmp"))
+        assert composed == "major", composed
+        assert results == [{"version": "2.0.0", "kind": "retired", "bump": "major", "evidence": None}]
+
+    print("OK: versions_from_composed_evidence + diff_versions/compose, a version retired from "
+          "the composed artefact's own member set classifies major with no policy diff anywhere "
+          "in ludlow's own repo -- ADR-0011's 'the composed bump is computed after composition', "
+          "proved end to end")
+
     print("PASS: adopter_gate.py selfcheck (declared_bump, diff_versions, compose -- retirement=major, "
           "strictest-wins, verification-failure-refuses, wrap_section brackets the markers, "
           "splice_body appends on a first run and replaces in place on a re-run without touching "
@@ -896,6 +985,10 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--platform-dir", type=Path)
     ap.add_argument("--old-ref")
     ap.add_argument("--new-ref")
+    ap.add_argument("--composed-base-ref", default=None,
+                     help="ADR-0011: ludlow's own commit-ish for composed/evidence.json 'before'")
+    ap.add_argument("--composed-head-ref", default=None,
+                     help="ADR-0011: ludlow's own commit-ish for composed/evidence.json 'after'")
     ap.add_argument("--out-comment", type=Path)
     ap.add_argument("--identity-regexp", default=EXPECTED_IDENTITY_REGEXP)
     ap.add_argument("--issuer", default=EXPECTED_ISSUER)
@@ -918,7 +1011,8 @@ def main(argv: list[str]) -> int:
         ap.error(f"missing required arguments: {', '.join('--' + m.replace('_','-') for m in missing)}")
 
     code, comment = run(args.ludlow_dir, args.platform_dir, args.old_ref, args.new_ref,
-                         args.identity_regexp, args.issuer)
+                         args.identity_regexp, args.issuer,
+                         composed_base_ref=args.composed_base_ref, composed_head_ref=args.composed_head_ref)
     args.out_comment.write_text(wrap_section(comment))
     return code
 
