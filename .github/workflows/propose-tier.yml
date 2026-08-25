@@ -1,0 +1,113 @@
+name: propose-tier
+
+# Ticket 17 (policy-composition); ADR-0015. The proposer's LAST step, unlike
+# every propose-never-dispose demonstrator elsewhere in this estate: it
+# actually commits, pushes and opens -- a pull request editing
+# `posture.acme.io/tier` on deploy/pod.yaml, or (for a proposed `deny`) an
+# issue instead. It never merges either: the war-gamer/proposer_bounds/
+# tier_pr chain still exposes no merge()/approve()/dispose() by
+# construction (see each module's own selfcheck), and the opened PR still
+# rides ordinary human review.
+#
+# Reads composed/evidence.json -- ludlow's own committed evidence document
+# (ticket 18 wires composition into this repo's CI and commits it on
+# success; until that PR has landed once, this job finds nothing and exits
+# quietly, same as propose-policy-pr.sh's own "no drift" no-op).
+#
+# Trigger, exactly ADR-0015 point 5: a MERGED pin bump, or a human
+# workflow_dispatch. Nothing timed, ever -- no `schedule:` anywhere.
+on:
+  pull_request:
+    types: [closed]
+    paths:
+      - party.yaml
+      - gitops/platform/platform-pin.yaml
+      - gitops/flux-system/gotk-sync-nist.yaml
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  propose-tier:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { path: ludlow, fetch-depth: 0 }
+
+      - name: install pyyaml (adopter-gate.py needs it to read the platform pin)
+        run: pip install --quiet pyyaml
+
+      # ludlow's own gate script isn't even called adopter-gate.py -- it's
+      # adopter_gate.py (underscore), and it has no `read-pin`/`verify-commit`
+      # subcommands either: its own module docstring's Usage section shows
+      # only `--ludlow-dir`/`--platform-dir`/`--old-ref`/`--new-ref`/etc, the
+      # shape ludlow's own shift-left.yml already calls it with, diffing a
+      # PR's base/head -- not applicable here (workflow_dispatch has no PR
+      # to diff, and this job has no business re-verifying platform's signed
+      # evidence again; shift-left.yml already did that before this pin bump
+      # merged). So this step calls the script's actual `read_pin()`
+      # function directly, against the just-checked-out working tree (ref
+      # "HEAD") -- the same parser shift-left.yml's own gate run uses,
+      # instead of a subcommand this script never had.
+      - name: read the platform pin -- the tier proposer runs THROUGH the pinned platform dependency
+        id: pin
+        run: |
+          set -euo pipefail
+          python3 -c "
+          import importlib.util
+          from pathlib import Path
+          spec = importlib.util.spec_from_file_location('adopter_gate', 'ludlow/.github/scripts/adopter_gate.py')
+          m = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(m)
+          pin = m.read_pin(Path('ludlow'), 'HEAD')
+          print(f\"tag={pin['tag']}\")
+          print(f\"commit={pin['commit']}\")
+          " >> "$GITHUB_OUTPUT"
+
+      - name: checkout platform AT THE PINNED TAG (same shape shift-left.yml already uses)
+        uses: actions/checkout@v4
+        with:
+          repository: policy-as-versioned-platform/platform
+          path: platform
+          ref: ${{ steps.pin.outputs.tag }}
+          fetch-depth: 0
+          fetch-tags: true
+
+      # Same reasoning as the read-pin step above: reuse `resolve_commit()`,
+      # the exact function ludlow's own full gate run calls for this same
+      # check, rather than a subcommand this script never exposed.
+      - name: verify platform's checked-out commit against the pin
+        env:
+          PINNED_COMMIT: ${{ steps.pin.outputs.commit }}
+        run: |
+          set -euo pipefail
+          python3 -c "
+          import importlib.util, os, sys
+          from pathlib import Path
+          spec = importlib.util.spec_from_file_location('adopter_gate', 'ludlow/.github/scripts/adopter_gate.py')
+          m = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(m)
+          resolved = m.resolve_commit(Path('platform'), 'HEAD')
+          pinned = os.environ['PINNED_COMMIT']
+          if resolved != pinned:
+              sys.exit(f'REFUSED: platform-pin.yaml names commit {pinned}, checked-out tag resolves to {resolved}')
+          print(f'ok  platform checked out commit matches the pin ({resolved})')
+          "
+
+      - name: run the proposer -- reads ludlow's own composed/evidence.json, lands PR or issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: policy-as-versioned-ludlow/ludlow
+        run: |
+          set -euo pipefail
+          git -C ludlow config user.email "wargamer-proposer@policy-as-versioned-ludlow.invalid"
+          git -C ludlow config user.name "wargamer proposer"
+          python3 platform/wargamer/tier_pr.py run \
+            --adopter-dir ludlow \
+            --evidence ludlow/composed/evidence.json \
+            --workload ludlow/deploy/pod.yaml \
+            --org ludlow
