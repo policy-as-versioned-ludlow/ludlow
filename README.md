@@ -14,3 +14,4 @@ pins `platform` (signed), pins `nist` + `ico` @version, owns versioned Kyverno
 CEL policies, own apps, own KinD cluster. The Deny end of the proportionality
 comparison (same control → Audit in `driftwood`, Deny here, because the £ differs).
 *(tickets 08, 09)*
+# ticket 18: verify compose-check on ludlow
