@@ -19,8 +19,11 @@ spec:
   url: https://github.com/policy-as-versioned-ludlow/ludlow
   ref:
     tag: v1.0.0
-    # commit pinned at release by the wave-push (belt-and-braces immutability):
-    # commit: <40-char-sha>
+    commit: 7bd9973be43de0b5d1d13b7eb46a1a60b01516ec
+    # commit pinned at release (belt-and-braces immutability, ADR-0001) --
+    # the resolved SHA ludlow's own v1.0.0 tag points to. Not covered by the
+    # Renovate customManagers in renovate.json (those track nist and platform
+    # only); a self-pin bump is a reviewed PR that moves both fields together.
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
