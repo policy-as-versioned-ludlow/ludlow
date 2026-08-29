@@ -245,6 +245,19 @@ jobs:
           echo "exit_code=$code" >> "$GITHUB_OUTPUT"
           exit 0   # never fail THIS step -- the evidence must land in the pull request body either way; the next step enforces the verdict
 
+      # Ticket 43 (18 Answer 4): the per-institution matrix row is filled HERE,
+      # by the adopter, with platform's PUBLISHED computed-semver package, run
+      # against this institution's own claimed policy versions with its own
+      # workloads added to the generated corpus. The publisher's own matrix
+      # stays empty and says so -- NORTH-STAR §2 forbids platform reading this
+      # repository. The row lands in composed/evidence.json; the PR carries it
+      # like every other composed change, and a human merges.
+      - name: fill this institution's own per-institution matrix row (ticket 43)
+        run: |
+          set -euo pipefail
+          python3 ludlow/.github/scripts/adopter_gate.py --matrix-row \
+            --platform-dir platform --ludlow-dir ludlow
+
       - name: render the adopter-gate evidence into the pull request BODY (ticket cs-29 -- the body itself, see header)
         if: always() && steps.adopter-gate.outputs.exit_code != ''
         env:
