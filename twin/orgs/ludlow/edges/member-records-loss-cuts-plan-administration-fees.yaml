@@ -1,0 +1,37 @@
+id: member-records-loss-cuts-plan-administration-fees
+type: influences
+from: member-record-store
+to: plan-administration-fees
+sign: negative
+lag_days: 90
+elasticity: { min: 0.00019, mode: 0.00076, max: 0.00213 }
+evidence_grade: 3
+note: >-
+  An exfiltration of the member record store suppresses plan administration fees over the
+  following year.
+
+  THE TRIPLE IS AN ANCHOR, NOT A MEASUREMENT, and it is graded 3 for exactly that reason. This
+  institution has no incident of its own to measure, so the three numbers are arithmetic on the
+  most thoroughly litigated plan-administrator breach on the public record, nested from the narrowest
+  settled track to the widest:
+
+    min  0.00019 =  16,000,000 / 84,194,000,000   (the regulator's own settlement alone)
+    mode 0.00076 =  64,200,000 / 84,194,000,000   (regulator + the multistate settlement)
+    max  0.00213 = 179,200,000 / 84,194,000,000   (both, plus the class-action settlement)
+
+  16,000,000 USD is the the federal civil-rights regulator (HHS OCR) settlement with Anthem, Inc.; 48,200,000 USD
+  the multistate attorneys-general settlement; 115,000,000 USD the class-action settlement, all on
+  the same 2015 breach of 78.8 million individuals' the regulated record category the plan holds.
+  84,194,000,000 USD is total operating revenue for the fiscal year ended 2016-12-31 in that
+  company's own SEC Form 10-K. Sources are recorded in the hub's
+  .scratch/ecosystem/research/94-studied-firms.md. Numerator and denominator are USD from the same
+  record, so the ratio is dimensionless and carries no FX claim -- which matters, because this
+  party reports in GBP.
+
+  What it is NOT: a settlement is not a suppression of administration fees, and that company is
+  not this one. Grade 3 on the published ladder is "an established mechanism from published work,
+  not observed here", which is precisely the claim being made. Grade 3 is OUTSIDE the ladder's
+  path_admission_threshold of 2, so no impact enters this perspective's pound through this edge
+  and emit-forward-intel.py refuses to emit a priced payload while it is the only causal edge here.
+  A grade-1 or grade-2 replacement is this institution's own dated incident record, and a regrade
+  event has to record who moved it and why (twin/evidence.py).

@@ -1,0 +1,15 @@
+id: member-record-store
+name: Member record store
+kind: data
+evolution: product
+visibility: 0.40
+needs: [claims-adjudication]
+description: >-
+  The regulated data this repository holds, modelled as a STORE and never as its contents. The
+  twin's schema refuses to represent an Article 9 special category anywhere, at any depth, as a
+  key or a value (twin/schema.py refuse_special_category, "compliance here is an impossibility,
+  not a rule") -- and the records this plan adjudicates against are exactly such a category. So
+  what this component carries is the existence of the store, its dependency on the adjudication
+  service and the cage it sits behind; what it deliberately does not carry is any category,
+  cohort or attribute of the people in it. The limit is the model's, it is stated here rather
+  than worked around, and it is written up in ../../../VENDORED.md.

@@ -1,0 +1,10 @@
+id: claims-adjudication
+name: Claims adjudication service
+kind: activity
+evolution: product
+visibility: 0.58
+needs: [cloud-compute]
+description: >-
+  The caged workload. Adjudicates member claims against plan rules inside the governed namespace
+  this repo's composed artefact renders, at whatever cage tier the price lands on. The tier is a
+  Namespace declaration and the pod label is an output of it (ADR-0022).

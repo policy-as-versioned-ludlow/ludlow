@@ -1,0 +1,5 @@
+id: privacy-officer-owns-member-record-store
+type: owns
+from: privacy-officer
+to: member-record-store
+note: A role edge, for the same reason.

@@ -1,0 +1,9 @@
+id: plan-administration-fees
+name: Plan administration fees
+kind: capability
+evolution: commodity
+visibility: 0.84
+description: >-
+  The declared cash flow. Money crosses here and nowhere else in this overlay, so this is the only
+  component an impact could price through (evidence-ladder path_admission_threshold). It carries no
+  amount today: see ../perspectives/ludlow.yaml.
