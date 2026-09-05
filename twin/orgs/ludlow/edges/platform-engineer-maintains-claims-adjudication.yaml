@@ -1,0 +1,5 @@
+id: platform-engineer-maintains-claims-adjudication
+type: maintains
+from: platform-engineer
+to: claims-adjudication
+note: A role edge. People reach the graph as roles only; no causal edge starts at a person.

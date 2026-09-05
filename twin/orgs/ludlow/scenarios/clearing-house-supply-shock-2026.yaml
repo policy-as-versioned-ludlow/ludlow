@@ -1,0 +1,24 @@
+id: clearing-house-supply-shock-2026
+question: >-
+  A tier-one supplier of this institution's own claims chain -- the clearing house that carries
+  claims between provider and plan -- fails to deliver against a material contract inside the
+  horizon. What does that cost adjudication?
+proposition: a-tier-one-supplier-fails-to-deliver-within-the-horizon
+at: '2026-09-04'
+horizon: '2027-09-04'
+components:
+  - tier-one-supplier-relationship
+  - claims-adjudication
+world_models:
+  - reference-map
+class: supply-shock
+note: >-
+  The standing supply-shock question, authored for a claims clearing chain rather than a hardware
+  one. It lives in this overlay and is never an entry in the news feed: a headline is a dated
+  signal somebody classified, and this is the standing question a headline moves. Keeping it here
+  is what stops a published feed carrying the twin's own subject matter back to it as though it
+  were external evidence.
+affected_parties:
+  - id: providers-waiting-to-be-paid
+    who: Providers whose claims sit unadjudicated while the chain is down, not represented in this model.
+    consequence: A failure this scenario forecasts is priced from the plan's side only; the twin carries no perspective for the providers or the members whose benefit is being decided.
