@@ -1,0 +1,10 @@
+# Ticket 08 (real-estate): moderately old, real, resolvable dependency
+# tree -- Flask 1.1.x (2020) and its era's Jinja2/Werkzeug/itsdangerous,
+# correlated with this team's policy version (2.0.0). Not the laggard
+# (that's ledger), not current (that's api) -- the middle case.
+Flask==1.1.4
+Jinja2==2.11.3
+Werkzeug==1.0.1
+itsdangerous==1.1.0
+MarkupSafe==1.1.1
+click==7.1.2
