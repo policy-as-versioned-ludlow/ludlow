@@ -59,6 +59,14 @@ GATE="$HERE/.github/scripts/adopter_gate.py"
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 
+# Hermetic against the operator's own git configuration (eco-system ticket 101, 2026-09-06). Every
+# repository below is a throwaway fixture, and a global `core.hooksPath` hook has no business
+# running in one: on 2026-09-06 this machine's hook ran out of API calls and every `git commit`
+# here began failing, which is a harness that cannot run for a reason that has nothing to do with
+# what it grades. The hub's fold_agreement.py had the same exposure and it was worse there -- the
+# failed commit was silent and the grader reported agreement it had not observed.
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null
+
 fail() { echo "FAIL: $*" >&2; exit 1; }
 skip() { echo "SKIP: $*"; exit 3; }
 say() { echo; echo "== $* =="; }
