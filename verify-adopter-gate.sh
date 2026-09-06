@@ -497,8 +497,16 @@ e_new_ref=$(sha_of "$e_ludlow")
 # closed port, which is a deterministic failure that does not depend on this
 # machine's firewall or DNS.
 BLOCKED_PROXY="http://127.0.0.1:1"
-offline() { HOME="$scratch/e-home" HTTPS_PROXY="$BLOCKED_PROXY" HTTP_PROXY="$BLOCKED_PROXY" \
-            ALL_PROXY="socks5://127.0.0.1:1" TUF_ROOT="$scratch/e-tuf" timeout 60 "$@"; }
+# NO_PROXY is CLEARED, not just left alone (eco-system ticket 101 review, F2, 2026-09-06).
+# Measured: with an ambient `NO_PROXY=*` exported, Go bypasses the closed port entirely, cosign
+# reaches Sigstore's CDN, and this scenario prints exit 0 -- "no network needed" for a run that
+# had just used the network. A measurement that fails in the REASSURING direction is worse than
+# no measurement, because nobody looks behind a green one. The lowercase spellings are set too,
+# because Go reads those as well.
+offline() { HOME="$scratch/e-home" TUF_ROOT="$scratch/e-tuf" \
+            HTTPS_PROXY="$BLOCKED_PROXY" HTTP_PROXY="$BLOCKED_PROXY" ALL_PROXY="socks5://127.0.0.1:1" \
+            https_proxy="$BLOCKED_PROXY" http_proxy="$BLOCKED_PROXY" all_proxy="socks5://127.0.0.1:1" \
+            NO_PROXY="" no_proxy="" timeout 60 "$@"; }
 mkdir -p "$scratch/e-home" "$scratch/e-tuf"
 
 run_gate_e() { # out_prefix identity_regexp platform_dir -> exit code
@@ -546,6 +554,13 @@ grep -q "$e_version" "$scratch/e2.md" || fail "E2: the rendered evidence does no
 grep -qiE "tuf|dial tcp|connection refused|trusted-root only supported" "$scratch/e2.out" \
   && fail "E2: the run reached (or tried to reach) the network, or refused on a flag -- not an offline verification of the served artefact"
 echo "OK: real cosign ACCEPTED platform's own published signature for policy ${e_version} at ${pinned_tag}, under this repository's own identity constant, with a cold TUF cache and egress blocked -- and the gate adopted, exit 0"
+echo "    (path, stated rather than implied: E2-E4 invoke the gate WITHOUT --composed-base-ref/--composed-head-ref,"
+echo "     so they reach verify_evidence() through read_versions() -- platform's own distribution/versions.yaml array"
+echo "     -- and not through versions_from_composed_evidence(), which is the path shift-left.yml passes. The two"
+echo "     paths differ only in where the member set is read; the evidence lookup, the cosign invocation and the"
+echo "     identity constant below them are the same code. The WORKFLOW'S path, flags and all, is what the hub's"
+echo "     verify/real-signature/verify-a-real-signature-is-checked.sh runs, reading them out of shift-left.yml"
+echo "     itself -- so between the two, both paths into this gate are graded. Eco-system ticket 101 review, F4.)"
 
 echo
 echo "-- E3: the REAL REFUSE -- the same real bundle with one signature byte changed --"
