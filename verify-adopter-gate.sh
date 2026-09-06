@@ -22,22 +22,37 @@
 #   so this part exercises the SURROUNDING wiring -- pin diffing, git
 #   reads, CLI exit codes, comment rendering -- that the selfcheck cannot).
 #
-#   Part C -- the real `cosign verify-blob` binary, invoked for real against
-#   a deliberately-invalid bundle for a genuinely CHANGED version. Proves
-#   the gate really calls cosign and really refuses when cosign refuses --
-#   not a mocked "assume it would fail".
+#   Part C -- a genuinely CHANGED version whose committed bundle this gate
+#   cannot read, and one with no evidence committed at all. Both refuse by
+#   name, BEFORE cosign is invoked: choosing which pinned trust material
+#   verifies a bundle means reading the bundle, and calling cosign without
+#   it is the live TUF fetch the committed root exists to prevent (ticket
+#   101). That cosign itself is really called, and really refuses, is
+#   proved in Part E against bytes platform actually published -- which is
+#   a stronger place to prove it than a fixture this file wrote.
 #
-# What this file does NOT prove, and cannot, offline: that cosign
-# verify-blob ACCEPTS a genuinely valid bundle, identity-pinned to
-# platform's real cut-release.yml Actions OIDC identity. Minting one needs
-# a live GitHub Actions ambient credential (Fulcio keyless signing, no
-# static key). Confirmed, not assumed: `cosign sign-blob --yes` was run in
-# this same sandbox and hung waiting on an interactive OIDC/browser flow --
-# no ambient credential exists here. This is the same CI-only boundary
-# ticket cs-13's and cs-27's own offline twins already disclose (cs-27's
-# CUT_RELEASE_TEST_MODE swaps only the `cosign sign-blob` call, nothing
-# else); the accept-path here is exercised in real GitHub Actions runs,
-# never locally.
+#   Part E -- platform's REAL PUBLISHED evidence, read from a real clone of
+#   platform at the tag this repository actually pins, verified by the real
+#   cosign binary through adopter_gate.py's OWN invocation, with a cold TUF
+#   cache and every route to the network hard-blocked. A real ACCEPT and
+#   three real REFUSES, all on bytes platform published.
+#
+# WHAT WAS DISCLOSED HERE UNTIL 2026-09-06, AND WHY IT IS GONE. This header
+# used to say that it "does NOT prove, and cannot, offline: that cosign
+# verify-blob ACCEPTS a genuinely valid bundle", and that "the accept-path
+# here is exercised in real GitHub Actions runs, never locally". Both had
+# stopped being true and nothing re-read them. A disclosed limit is an
+# assertion and goes stale like any other: this estate grades its PASS lines
+# and graded none of its "cannot" lines, and that sentence went on excusing a
+# gap that had become a defect -- the gate could not verify ANY bundle
+# platform publishes (see Part E1), and the accept path had never run in CI
+# either, because diff_versions() reaches verify_evidence() only when the
+# composed member set moves. Part E now proves the accept for real, offline,
+# in about a second. Signing NEW evidence is still out of reach here (Fulcio
+# keyless signing needs a live Actions credential; `cosign sign-blob --yes`
+# hangs on the interactive flow in this sandbox, confirmed 2026-09-06) --
+# but VERIFYING what platform already signed never needed one. Every limit
+# left in this file is dated, or printed as a number by the run itself.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GATE="$HERE/.github/scripts/adopter_gate.py"
@@ -45,6 +60,7 @@ scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 
 fail() { echo "FAIL: $*" >&2; exit 1; }
+skip() { echo "SKIP: $*"; exit 3; }
 say() { echo; echo "== $* =="; }
 
 # ---------------------------------------------------------------------------
@@ -232,7 +248,7 @@ grep -q "| bump | \*\*major\*\* | \*\*none\*\* |" "$scratch/b3.md" || fail "B3: 
 echo "OK: composed=none against declared=major (v0.1.0 -> v1.0.0) passes, prints informational, never fails"
 
 # ---------------------------------------------------------------------------
-say "Part C: real cosign verify-blob, invoked for real, against a deliberately-invalid bundle"
+say "Part C: a bundle this gate cannot read, and a missing one -- refused by name, before cosign"
 # ---------------------------------------------------------------------------
 
 echo "-- a CHANGED version whose evidence file exists but whose bundle is not a real Sigstore bundle --"
@@ -268,9 +284,12 @@ python3 "$GATE" --ludlow-dir "$ludlow3" --platform-dir "$platform3" \
 c1_code=$?
 set -e
 cat "$scratch/c1.out"
-[ "$c1_code" -eq 1 ] || fail "C1: an invalid bundle must be refused by the REAL cosign binary, got exit $c1_code"
-grep -qi "cosign verify-blob refused" "$scratch/c1.out" || fail "C1: refusal reason does not name cosign's own refusal"
-echo "OK: cosign (the real binary) was invoked against the invalid bundle and refused it; the gate propagated that as a hard refusal"
+[ "$c1_code" -eq 1 ] || fail "C1: a bundle that is neither cosign shape must be refused, got exit $c1_code"
+grep -qi "is neither a legacy cosign bundle" "$scratch/c1.out" \
+  || fail "C1: the refusal does not name the bundle shape as the reason"
+grep -qi "refusing rather than handing cosign no trust root" "$scratch/c1.out" \
+  || fail "C1: the refusal does not say why it stops here rather than calling cosign without pinned trust material"
+echo "OK: a bundle whose shape this gate cannot read is refused by name, and no cosign call is made without pinned trust material"
 
 echo
 echo "-- a CHANGED version with no committed evidence file at all --"
@@ -349,90 +368,270 @@ diff -q "$scratch/d-out1.md" "$scratch/d-out2.md" > /dev/null || fail "D2: re-ru
 echo "OK: re-run replaces the prior span in place, byte-identical, markers not duplicated -- real CLI, real re.sub(), backslashes and all"
 
 # ---------------------------------------------------------------------------
-say "Part E: cosign verify-blob is genuinely offline -- committed trusted_root.json, egress blocked"
+say "Part E: platform's REAL PUBLISHED evidence, through this gate's own CLI, offline"
 # ---------------------------------------------------------------------------
-# Proves the claim in adopter_gate.py's own module docstring and this
-# ticket's acceptance criterion ("identity-pinned and offline") against the
-# real binary, not just against a proxy for it: with the committed
-# .github/scripts/trusted_root.json wired in via --trusted-root, cosign
-# verify-blob does NOT reach the network at all, even when the run's own
-# egress is hard-blocked -- contrasted directly against the SAME invocation
-# with --trusted-root removed, which times out trying to fetch a live TUF
-# root the moment egress is blocked (this is the exact failure the review
-# reproduced against the previously-shipped code).
+# Eco-system ticket 101, 2026-09-06. Until this part existed, no adopter gate
+# in the estate had ever been observed verifying a signature platform actually
+# published, and this one could not: adopter_gate.py passed --trusted-root
+# with --new-bundle-format=true, and cosign v3.1.3 -- the version
+# shift-left.yml installs by checksum -- answers "--trusted-root only
+# supported with --new-bundle-format" to every bundle platform has published,
+# because those are the LEGACY shape (base64Signature/cert/rekorBundle). The
+# old Part E missed it by proving the offline property against a bundle it
+# signed locally, which is in the NEW format -- a fixture whose shape happened
+# to match the flag the served artefact does not have -- and by invoking
+# cosign DIRECTLY rather than through the gate.
 #
-# The gate's own real path is keyless (Fulcio-certificate identity); minting
-# a genuine Fulcio-signed bundle needs a live GitHub Actions OIDC token that
-# does not exist on this machine (see the file header). --trusted-root's
-# offline mechanics do not depend on key vs. keyless -- cosign loads the
-# trust material before it ever looks at the certificate or key -- so a
-# locally key-signed bundle proves the offline property for real, and this
-# part is explicit that the keyless *accept* path itself stays CI-only.
+# So: the served artefact is platform's own committed
+# computed-semver/evidence/<version>.json[.bundle] at the tag THIS repository
+# pins, read out of a real clone. The operation is adopter_gate.py's own CLI,
+# the one shift-left.yml runs, under this repository's own identity constant.
+# Every invocation below runs with a cold TUF cache (HOME redirected) and with
+# every proxy variable pointed at a closed port, so anything that needs the
+# network fails instead of quietly succeeding off somebody's warm ~/.sigstore.
 
-TRUSTED_ROOT="$HERE/.github/scripts/trusted_root.json"
-[ -s "$TRUSTED_ROOT" ] || fail "E setup: $TRUSTED_ROOT is missing or empty -- adopter_gate.py cannot verify offline without it"
-grep -q -- '--trusted-root=' "$GATE" || fail "E setup: adopter_gate.py no longer passes --trusted-root to cosign verify-blob"
-grep -q 'TRUSTED_ROOT_PATH' "$GATE" || fail "E setup: adopter_gate.py no longer wires a committed TRUSTED_ROOT_PATH"
+platform_repo="${PLATFORM_REPO:-$HERE/../platform}"
+[ -d "$platform_repo/.git" ] \
+  || skip "no clone of platform at $platform_repo (set PLATFORM_REPO=) -- this part verifies platform's real published evidence and there is nothing to read"
 
-keydir="$scratch/e-keys"
-mkdir -p "$keydir"
-( cd "$keydir" && COSIGN_PASSWORD="" cosign generate-key-pair > /dev/null 2>&1 )
-echo "genuinely offline trust-root proof" > "$keydir/blob.txt"
-( cd "$keydir" && COSIGN_PASSWORD="" cosign sign-blob --key cosign.key --yes --bundle blob.txt.bundle blob.txt > /dev/null 2>&1 )
-[ -s "$keydir/blob.txt.bundle" ] || fail "E setup: local key-signed bundle was not produced"
+pinned_tag=$(python3 - "$HERE/gitops/platform/platform-pin.yaml" <<'PY'
+import sys, yaml
+for doc in yaml.safe_load_all(open(sys.argv[1])):
+    if isinstance(doc, dict) and doc.get("kind") == "GitRepository":
+        print((doc.get("spec") or {}).get("ref", {}).get("tag", ""))
+        break
+PY
+)
+[ -n "$pinned_tag" ] || fail "E setup: could not read the pinned platform tag out of this repository's own gitops/platform/platform-pin.yaml"
+echo "this repository pins platform $pinned_tag"
 
-# A bogus, unreachable HTTPS proxy -- deterministic egress failure, no
-# reliance on this sandbox's own firewall or DNS. Never reused outside this
-# subshell's env.
+e_platform="$scratch/platform-e"
+git clone --local --quiet "$platform_repo" "$e_platform"
+git -C "$e_platform" config advice.detachedHead false
+git -C "$e_platform" rev-parse -q --verify "refs/tags/${pinned_tag}^{commit}" > /dev/null \
+  || skip "the clone of platform at $platform_repo carries no tag object for ${pinned_tag}, the tag this repository pins -- it is behind the estate"
+e_commit=$(git -C "$e_platform" rev-parse "refs/tags/${pinned_tag}^{commit}")
+git -C "$e_platform" checkout --quiet "$pinned_tag"
+git -C "$e_platform" config user.email t@example.invalid
+git -C "$e_platform" config user.name t
+git -C "$e_platform" config commit.gpgsign false
+git -C "$e_platform" config tag.gpgsign false
+
+# The version whose REAL signed evidence this part verifies: one that
+# platform actually published a bundle for at this tag, and whose own
+# computed bump is not major -- so a genuine ACCEPT can be observed as an
+# ACCEPT and not read through a designed composed-major refusal. Chosen from
+# the tag's own tree, never hard-coded: if platform's published set changes,
+# this picks again rather than going stale.
+e_version=$(python3 - "$e_platform" <<'PY'
+import json, pathlib, subprocess, sys
+root = pathlib.Path(sys.argv[1]) / "computed-semver" / "evidence"
+picks = []
+for doc in sorted(root.glob("*.json")):
+    if doc.with_suffix(".json.bundle").exists():
+        try:
+            computed = json.loads(doc.read_text())["bump"]["computed"]
+        except Exception:
+            continue
+        if computed != "major":
+            picks.append((doc.name[:-5], computed))
+print(picks[0][0] if picks else "")
+PY
+)
+[ -n "$e_version" ] || skip "platform at ${pinned_tag} publishes no evidence document with a committed bundle whose own computed bump is below major, so an ACCEPT cannot be told apart from the designed composed-major refusal here"
+e_bundle="$e_platform/computed-semver/evidence/${e_version}.json.bundle"
+[ -s "$e_bundle" ] || fail "E setup: no committed bundle at computed-semver/evidence/${e_version}.json.bundle"
+e_shape=$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print("legacy" if "base64Signature" in d else ("new" if "mediaType" in d else "unknown"))' "$e_bundle")
+echo "platform's published bundle for policy ${e_version} at ${pinned_tag} is the ${e_shape} cosign bundle shape"
+
+# The planted movement: this version ARRIVES in platform's supported array,
+# so the gate must look its real evidence up and verify its real signature.
+# Nothing about the evidence, the bundle or the certificate is planted -- only
+# which versions the array names, which is the movement a Renovate pull
+# request makes.
+e_array_line=$(grep -n 'version: "' "$e_platform/distribution/versions.yaml" | head -1 | cut -d: -f1)
+[ -n "$e_array_line" ] || fail "E setup: platform's distribution/versions.yaml at ${pinned_tag} names no version"
+python3 - "$e_platform/distribution/versions.yaml" "$e_array_line" "$e_version" "$e_commit" <<'PY'
+import sys
+path, line_no, version, commit = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4]
+lines = open(path).read().splitlines(keepends=True)
+indent = " " * (len(lines[line_no - 1]) - len(lines[line_no - 1].lstrip()))
+if f'version: "{version}"' in lines[line_no - 1]:
+    del lines[line_no - 1]          # the version already stands: take it out of the OLD window
+    line_no -= 1
+open(path + ".old", "w").writelines(lines)
+lines.insert(line_no, f'{indent}- {{ version: "{version}", tag: "policy/v{version}", commit: "{commit}" }}\n')
+open(path + ".new", "w").writelines(lines)
+PY
+cp "$e_platform/distribution/versions.yaml.old" "$e_platform/distribution/versions.yaml"
+rm -f "$e_platform/distribution/versions.yaml.old"
+git -C "$e_platform" add -A && git -C "$e_platform" commit -q -m "planted: the window before ${e_version} arrives"
+e_old_commit=$(git -C "$e_platform" rev-parse HEAD)
+git -C "$e_platform" tag v9.0.0
+mv "$e_platform/distribution/versions.yaml.new" "$e_platform/distribution/versions.yaml"
+git -C "$e_platform" add -A && git -C "$e_platform" commit -q -m "planted: ${e_version} arrives, pointing at platform's own real evidence commit"
+e_new_commit=$(git -C "$e_platform" rev-parse HEAD)
+git -C "$e_platform" tag v9.1.0
+
+e_ludlow="$scratch/ludlow-e"
+mkgit "$e_ludlow"; mkdir -p "$e_ludlow/gitops/platform"
+pin_yaml "v9.0.0" "$e_old_commit" > "$e_ludlow/gitops/platform/platform-pin.yaml"
+commit_all "$e_ludlow" "pin the window before the arrival"
+e_old_ref=$(sha_of "$e_ludlow")
+pin_yaml "v9.1.0" "$e_new_commit" > "$e_ludlow/gitops/platform/platform-pin.yaml"
+commit_all "$e_ludlow" "renovate: adopt the window in which ${e_version} stands"
+e_new_ref=$(sha_of "$e_ludlow")
+
+# Hard-blocked egress and a cold TUF cache, for every invocation in this
+# part. HOME is redirected so no warm ~/.sigstore can stand in for the
+# committed pin (adopter_gate.py also points TUF_ROOT at an empty directory
+# it owns, which is the belt to this brace); the proxy variables point at a
+# closed port, which is a deterministic failure that does not depend on this
+# machine's firewall or DNS.
 BLOCKED_PROXY="http://127.0.0.1:1"
+offline() { HOME="$scratch/e-home" HTTPS_PROXY="$BLOCKED_PROXY" HTTP_PROXY="$BLOCKED_PROXY" \
+            ALL_PROXY="socks5://127.0.0.1:1" TUF_ROOT="$scratch/e-tuf" timeout 60 "$@"; }
+mkdir -p "$scratch/e-home" "$scratch/e-tuf"
+
+run_gate_e() { # out_prefix identity_regexp platform_dir -> exit code
+  set +e
+  offline python3 "$GATE" --ludlow-dir "$e_ludlow" --platform-dir "$3" \
+    --old-ref "$e_old_ref" --new-ref "$e_new_ref" --out-comment "$scratch/$1.md" \
+    --identity-regexp "$2" --issuer "https://token.actions.githubusercontent.com" \
+    > "$scratch/$1.out" 2>&1
+  local code=$?
+  set -e
+  echo "$code"
+}
 
 echo
-echo "-- E1: WITHOUT --trusted-root, blocked egress -- must fail on the network, not on the signature --"
+echo "-- E1: the invocation this gate shipped until 2026-09-06 -- --trusted-root with --new-bundle-format=true -- against platform's REAL published bundle --"
+# Kept as a live measurement rather than a sentence, because the sentence is
+# exactly what went stale last time. If a future cosign accepts this pairing
+# against a legacy bundle, this fails and says so, and remedy 3 in eco-system
+# ticket 101 becomes available.
 set +e
-e1_out=$(HOME="$scratch/e-home1" HTTPS_PROXY="$BLOCKED_PROXY" timeout 15 \
-  cosign verify-blob --bundle="$keydir/blob.txt.bundle" --key="$keydir/cosign.pub" \
-  --new-bundle-format=true "$keydir/blob.txt" 2>&1)
+e1_out=$(offline cosign verify-blob --bundle="$e_bundle" \
+  --trusted-root="$HERE/.github/scripts/trusted_root.json" --new-bundle-format=true \
+  --certificate-identity-regexp="$REGEXP" \
+  --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
+  "$e_platform/computed-semver/evidence/${e_version}.json" 2>&1)
 e1_code=$?
 set -e
 echo "$e1_out"
-[ "$e1_code" -ne 0 ] || fail "E1: expected a network failure with no trust root pinned and egress blocked, got exit 0"
-echo "$e1_out" | grep -qi "TUF\|tuf-repo-cdn\|dial tcp\|connection refused" \
-  || fail "E1: failure did not name a TUF/network cause -- this test no longer reproduces the reported bug"
-echo "OK: reproduced the reported bug -- no --trusted-root means cosign tries the network and fails closed when it's blocked"
+if [ "$e_shape" = "legacy" ]; then
+  [ "$e1_code" -ne 0 ] || fail "E1: cosign now ACCEPTS --trusted-root against a legacy bundle -- the ticket 101 finding no longer holds and this gate should be simplified back onto it"
+  echo "$e1_out" | grep -q -- "--trusted-root only supported with --new-bundle-format" \
+    || fail "E1: the shipped-until-2026-09-06 invocation failed for a reason this part does not recognise: $e1_out"
+  echo "OK: measured, not asserted -- the pre-2026-09-06 invocation still refuses platform's real published bundle on the FLAG, before it looks at the signature (cosign $(cosign version 2>/dev/null | awk '/GitVersion/{print $2}'))"
+else
+  echo "OK: platform now publishes ${e_shape}-format bundles, so the pre-2026-09-06 invocation is no longer wrong for the served artefact (exit ${e1_code})"
+fi
 
 echo
-echo "-- E2: WITH --trusted-root (the committed file), blocked egress -- must verify, no network attempt at all --"
-set +e
-e2_out=$(HOME="$scratch/e-home2" HTTPS_PROXY="$BLOCKED_PROXY" timeout 15 \
-  cosign verify-blob --bundle="$keydir/blob.txt.bundle" --key="$keydir/cosign.pub" \
-  --trusted-root="$TRUSTED_ROOT" --new-bundle-format=true "$keydir/blob.txt" 2>&1)
-e2_code=$?
-set -e
-echo "$e2_out"
-[ "$e2_code" -eq 0 ] || fail "E2: expected successful offline verification with the committed trusted root, got exit $e2_code"
-echo "$e2_out" | grep -qi "TUF\|dial tcp\|connection refused" \
-  && fail "E2: cosign still attempted a network call despite --trusted-root -- not actually offline"
-echo "OK: --trusted-root, egress blocked -- cosign verified successfully with zero network attempts"
+echo "-- E2: the REAL ACCEPT -- platform's real published evidence for policy ${e_version}, through adopter_gate.py's own CLI, cold TUF cache, egress blocked --"
+e2_code=$(run_gate_e e2 "$REGEXP" "$e_platform")
+cat "$scratch/e2.out"
+[ "$e2_code" -eq 0 ] || fail "E2: the gate did not accept platform's real published evidence for ${e_version} (exit $e2_code) -- this is the ticket 101 defect if the reason names a flag"
+grep -q "PASS: declared=" "$scratch/e2.out" || fail "E2: the gate did not reach its own PASS line"
+grep -q "$e_version" "$scratch/e2.md" || fail "E2: the rendered evidence does not name policy ${e_version}"
+grep -qiE "tuf|dial tcp|connection refused|trusted-root only supported" "$scratch/e2.out" \
+  && fail "E2: the run reached (or tried to reach) the network, or refused on a flag -- not an offline verification of the served artefact"
+echo "OK: real cosign ACCEPTED platform's own published signature for policy ${e_version} at ${pinned_tag}, under this repository's own identity constant, with a cold TUF cache and egress blocked -- and the gate adopted, exit 0"
 
 echo
-echo "-- E3: WITH --trusted-root, egress blocked, WRONG key -- still a real, deterministic refusal, not a false accept --"
-( cd "$keydir" && COSIGN_PASSWORD="" cosign generate-key-pair --output-key-prefix wrong > /dev/null 2>&1 )
+echo "-- E3: the REAL REFUSE -- the same real bundle with one signature byte changed --"
+e3_platform="$scratch/platform-e3"
+cp -r "$e_platform" "$e3_platform"
+python3 - "$e3_platform/computed-semver/evidence/${e_version}.json.bundle" <<'PY'
+import json, sys
+path = sys.argv[1]
+doc = json.load(open(path))
+if "base64Signature" in doc:
+    s = doc["base64Signature"]
+    doc["base64Signature"] = ("B" if s[0] != "B" else "C") + s[1:]
+else:
+    sig = doc["messageSignature"]["signature"]
+    doc["messageSignature"]["signature"] = ("B" if sig[0] != "B" else "C") + sig[1:]
+json.dump(doc, open(path, "w"))
+PY
+git -C "$e3_platform" add -A && git -C "$e3_platform" commit -q -m "tamper: one byte of the real signature"
+e3_evidence_commit=$(git -C "$e3_platform" rev-parse HEAD)
+# The gate reads a version's evidence at the commit THAT VERSION'S OWN ARRAY
+# ENTRY names, not at the pin's head commit -- so the planted entry has to
+# point at the tampered commit, or the gate would read the untouched bytes
+# and this would prove nothing. (It did exactly that on the first run here.)
+python3 - "$e3_platform/distribution/versions.yaml" "$e_commit" "$e3_evidence_commit" <<'PY2'
+import sys
+path, old_commit, new_commit = sys.argv[1], sys.argv[2], sys.argv[3]
+text = open(path).read()
+assert old_commit in text, "the planted array entry no longer names the evidence commit"
+open(path, "w").write(text.replace(old_commit, new_commit))
+PY2
+git -C "$e3_platform" add -A && git -C "$e3_platform" commit -q -m "planted: point the arriving entry at the tampered evidence commit"
+git -C "$e3_platform" tag -f v9.1.0 > /dev/null 2>&1
+e3_new_commit=$(git -C "$e3_platform" rev-parse HEAD)
+# The pin has to name the tampered commit, or the gate refuses on the pin
+# rather than on the signature -- and a refusal about a pin would prove
+# nothing about cosign.
+e3_ludlow="$scratch/ludlow-e3"
+cp -r "$e_ludlow" "$e3_ludlow"
+pin_yaml "v9.1.0" "$e3_new_commit" > "$e3_ludlow/gitops/platform/platform-pin.yaml"
+commit_all "$e3_ludlow" "renovate: adopt the tampered window"
+e3_new_ref=$(sha_of "$e3_ludlow")
 set +e
-e3_out=$(HOME="$scratch/e-home3" HTTPS_PROXY="$BLOCKED_PROXY" timeout 15 \
-  cosign verify-blob --bundle="$keydir/blob.txt.bundle" --key="$keydir/wrong.pub" \
-  --trusted-root="$TRUSTED_ROOT" --new-bundle-format=true "$keydir/blob.txt" 2>&1)
+offline python3 "$GATE" --ludlow-dir "$e3_ludlow" --platform-dir "$e3_platform" \
+  --old-ref "$e_old_ref" --new-ref "$e3_new_ref" --out-comment "$scratch/e3.md" \
+  --identity-regexp "$REGEXP" --issuer "https://token.actions.githubusercontent.com" \
+  > "$scratch/e3.out" 2>&1
 e3_code=$?
 set -e
-echo "$e3_out"
-[ "$e3_code" -ne 0 ] || fail "E3: verification with the WRONG key must not pass, got exit 0"
-echo "OK: offline verification against the committed trust root still genuinely refuses a signature/key mismatch"
+cat "$scratch/e3.out"
+[ "$e3_code" -eq 1 ] || fail "E3: a tampered signature on platform's real bundle must refuse, got exit $e3_code"
+grep -qi "cosign verify-blob refused" "$scratch/e3.out" || fail "E3: the refusal does not name cosign's own refusal"
+grep -qi "signature\|verif" "$scratch/e3.out" || fail "E3: the refusal is not about the signature"
+grep -qi "trusted-root only supported" "$scratch/e3.out" \
+  && fail "E3: the refusal is about a command line, not about a signature -- the ticket 101 defect"
+echo "OK: real cosign REFUSED the same real bundle with one signature byte changed, offline, and the gate propagated it as a refusal about the SIGNATURE"
+
+echo
+echo "-- E4: the identity pin is load-bearing against a real Fulcio certificate, not just against a string --"
+e4_code=$(run_gate_e e4 '^https://github\.com/evil-org/platform/\.github/workflows/cut-release\.yml@refs/heads/main$' "$e_platform")
+cat "$scratch/e4.out"
+[ "$e4_code" -eq 1 ] || fail "E4: a foreign identity regexp must refuse platform's real evidence, got exit $e4_code"
+grep -qi "cosign verify-blob refused" "$scratch/e4.out" || fail "E4: the refusal does not name cosign's own refusal"
+grep -qi "none of the expected identities matched" "$scratch/e4.out" \
+  || fail "E4: the refusal does not name an identity mismatch -- it may have failed for some other reason"
+echo "OK: the same real, valid bundle is REFUSED when the identity constant names a foreign publisher -- the certificate is really being read"
+
+echo
+echo "-- E5: the contrast -- the same real bundle with NO pinned trust material, cold cache, egress blocked --"
+# What the pin buys, measured rather than claimed: with a cold TUF cache and
+# no network, an unpinned verification of the very same bytes fails on the
+# trust root. It PASSES on a laptop with a warm ~/.sigstore, which is exactly
+# why the cache is cold here.
+set +e
+e5_out=$(offline cosign verify-blob --bundle="$e_bundle" \
+  --certificate-identity-regexp="$REGEXP" \
+  --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
+  "$e_platform/computed-semver/evidence/${e_version}.json" 2>&1)
+e5_code=$?
+set -e
+echo "$e5_out"
+[ "$e5_code" -ne 0 ] || fail "E5: an unpinned verification succeeded with a cold TUF cache and blocked egress -- the cache is not actually cold, so E2's offline claim is not being proved"
+echo "$e5_out" | grep -qiE "tuf|dial tcp|connection refused" \
+  || fail "E5: the unpinned verification failed for a reason that is not the network: $e5_out"
+echo "OK: without the committed trust material the identical bytes cannot be verified offline at all -- the pin is what makes E2 offline, and it is measured on this run, not asserted"
 
 echo
 echo "PASS: verify-adopter-gate.sh -- identity regexp (match/reject/rename-breaks-it), resolved-commit refusal,"
 echo "      retirement-forces-major, composed-major fails the check, weaker-than-declared is informational-only,"
-echo "      real cosign refuses an invalid bundle and a missing one, --splice-body survives backslash-bearing"
-echo "      evidence across a first run and a re-run without crashing or duplicating markers, and cosign"
-echo "      verify-blob is proven genuinely offline against the real binary with egress hard-blocked (contrasted"
-echo "      directly against the same call without --trusted-root, which fails on the network the moment egress"
-echo "      is blocked) -- all real git, real YAML, real cosign. NOT exercised here (CI-only, confirmed): cosign"
-echo "      accepting a genuinely valid Fulcio-signed bundle -- no ambient OIDC credential exists on this machine."
+echo "      a bundle shape this gate cannot read is refused by name and a missing evidence file before that,"
+echo "      --splice-body survives backslash-bearing evidence across a first run and a re-run without crashing"
+echo "      or duplicating markers, and -- against platform's REAL PUBLISHED evidence at the tag this repository"
+echo "      pins, through adopter_gate.py's own CLI, with a cold TUF cache and egress hard-blocked -- real cosign"
+echo "      ACCEPTS platform's own signature (E2, exit 0), REFUSES the same bundle with one signature byte changed"
+echo "      (E3), REFUSES it under a foreign identity constant (E4), cannot verify it at all without the committed"
+echo "      trust material (E5), and still refuses the pre-2026-09-06 --trusted-root invocation on the flag (E1)."
+echo "      Out of reach here and dated 2026-09-06: SIGNING new evidence (Fulcio keyless needs a live Actions"
+echo "      credential). Verifying what platform already signed is not, and is proved above."

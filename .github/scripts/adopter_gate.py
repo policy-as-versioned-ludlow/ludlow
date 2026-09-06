@@ -36,10 +36,19 @@ answer to the same question has no tie-breaker"). Instead it:
      repo pins that root too, the same shape release.yml's gitsign check
      already pins Rekor offline: TRUSTED_ROOT_PATH below, a trusted_root.
      json committed next to this script (`cosign initialize` once, then
-     copy $HOME/.sigstore/root/*/targets/trusted_root.json here), passed
-     as --trusted-root. Refresh it the way any pinned trust material is
-     refreshed -- deliberately, by committing a new copy -- never by
-     letting cosign reach out live.
+     copy $HOME/.sigstore/root/*/targets/trusted_root.json here). Refresh
+     it the way any pinned trust material is refreshed -- deliberately, by
+     committing a new copy -- never by letting cosign reach out live.
+     HOW that one committed file reaches cosign depends on the shape of
+     the bundle being verified, and until 2026-09-06 this gate got it
+     wrong for every bundle platform has ever published: it passed
+     --trusted-root with --new-bundle-format=true, and cosign v3.1.3 --
+     the version shift-left.yml installs by checksum -- answers
+     "--trusted-root only supported with --new-bundle-format" to a LEGACY
+     bundle, which is what platform publishes. See the ticket-101 block
+     above verify_evidence() for the two doors and how the material is
+     selected; the accept and the refusals are proved against platform's
+     real published bundles, offline, in verify-adopter-gate.sh Part E.
   5. Composes: the strictest bump across every retirement (major) and every
      changed version's own verified `bump.computed` -- cross-party
      composition is out of scope (spec.md, "Out of Scope"; see also
@@ -81,7 +90,10 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import base64
+import binascii
 import json
+import os
 import re
 import subprocess
 import sys
@@ -309,6 +321,176 @@ def diff_versions(old: list[dict], new: list[dict]) -> tuple[list[str], list[dic
     return retired, changed
 
 
+# --------------------------------------------------------------------------
+# Eco-system ticket 101, 2026-09-06: pinning the trust material the bundle
+# platform ACTUALLY PUBLISHES is read through.
+#
+# The shape of the artefact decides the invocation, because cosign's two
+# verification paths take their trust material by different doors:
+#
+#   * a NEW-format Sigstore bundle (`mediaType`/`verificationMaterial`/
+#     `messageSignature`) takes a whole trusted root through --trusted-root,
+#     with --new-bundle-format=true;
+#   * a LEGACY bundle (`base64Signature`/`cert`/`rekorBundle`) -- which is
+#     every bundle platform has published to date -- refuses --trusted-root
+#     outright ("--trusted-root only supported with --new-bundle-format",
+#     cosign v3.1.3, the version shift-left.yml installs by checksum) and
+#     reads its trust material from SIGSTORE_ROOT_FILE, SIGSTORE_REKOR_
+#     PUBLIC_KEY and SIGSTORE_CT_LOG_PUBLIC_KEY_FILE instead.
+#
+# Both doors are fed from the SAME committed trusted_root.json, so the pin
+# is one reviewed file either way and nothing new has to be trusted. The
+# legacy door takes one key per role, and cosign reads only the FIRST PEM
+# block of the CT file (measured 2026-09-06: the same two keys concatenated
+# the other way round answer "ctfe public key not found for payload"), so
+# the key is SELECTED by the log identifiers the artefact itself names --
+# the SCT log id inside its own Fulcio certificate and the `logID` in its
+# own rekorBundle. A committed root that carries neither refuses BY NAME.
+#
+# TUF_ROOT is pointed at an empty directory this run owns. That is the
+# difference between "offline" and "offline on a machine that happens to
+# have a warm ~/.sigstore": with a cold cache and egress blocked, an
+# invocation that needs the network fails instead of silently succeeding.
+# --------------------------------------------------------------------------
+# 1.3.6.1.4.1.11129.2.4.2 -- RFC 6962's SignedCertificateTimestampList
+# extension, as it appears in DER: the OID, then the extnValue OCTET STRING.
+SCT_EXTENSION_OID_DER = bytes.fromhex("060a2b06010401d679020402")
+
+
+def bundle_shape(bundle_text: str) -> str | None:
+    """'new', 'legacy', or None for anything this gate cannot read. None is
+    a refusal, never a reason to guess: choosing the trust material means
+    reading the bundle, and invoking cosign without it is the live TUF fetch
+    the committed root exists to prevent."""
+    try:
+        doc = json.loads(bundle_text)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return None
+    if not isinstance(doc, dict):
+        return None
+    if "mediaType" in doc and "verificationMaterial" in doc:
+        return "new"
+    if "base64Signature" in doc and "cert" in doc:
+        return "legacy"
+    return None
+
+
+def _der_octet_string(payload: bytes) -> bytes:
+    """DER-encode `payload` as an OCTET STRING (short or long form length).
+    Used by the selfcheck to build a certificate-shaped fixture; the parser
+    below reads the same encoding back."""
+    if len(payload) < 0x80:
+        return b"\x04" + bytes([len(payload)]) + payload
+    length = len(payload).to_bytes((len(payload).bit_length() + 7) // 8, "big")
+    return b"\x04" + bytes([0x80 | len(length)]) + length + payload
+
+
+def _read_der_octet_string(data: bytes, pos: int) -> bytes:
+    if pos >= len(data) or data[pos] != 0x04:
+        raise ValueError("expected a DER OCTET STRING")
+    n = data[pos + 1]
+    pos += 2
+    if n & 0x80:
+        k = n & 0x7F
+        n = int.from_bytes(data[pos:pos + k], "big")
+        pos += k
+    return data[pos:pos + n]
+
+
+def sct_log_ids(cert_der: bytes) -> list[str]:
+    """The certificate-transparency log ids this certificate's own embedded
+    SCTs name, lowercase hex. Read out of the DER rather than out of
+    anything the publisher supplies at verification time -- the whole point
+    of an identity-pinned check is that the subject does not choose the
+    ruler. Returns [] when the certificate carries no SCT extension."""
+    i = cert_der.find(SCT_EXTENSION_OID_DER)
+    if i < 0:
+        return []
+    try:
+        inner = _read_der_octet_string(_read_der_octet_string(cert_der, i + len(SCT_EXTENSION_OID_DER)), 0)
+        total = int.from_bytes(inner[:2], "big")
+        pos, end, ids = 2, 2 + total, []
+        while pos < end:
+            n = int.from_bytes(inner[pos:pos + 2], "big")
+            sct = inner[pos + 2:pos + 2 + n]
+            pos += 2 + n
+            if len(sct) >= 33:
+                ids.append(sct[1:33].hex())
+        return ids
+    except (ValueError, IndexError):
+        return []
+
+
+def _pem(raw_b64: str, label: str) -> str:
+    body = raw_b64.strip()
+    return (f"-----BEGIN {label}-----\n"
+            + "\n".join(body[i:i + 64] for i in range(0, len(body), 64))
+            + f"\n-----END {label}-----\n")
+
+
+def _log_entry(entries: list, wanted: list[str]) -> dict | None:
+    """The first log in the committed root whose key id is one of `wanted`
+    (lowercase hex). `logId.keyId` is base64 of the sha256 of the key's own
+    DER, which is exactly what an SCT and a rekorBundle name."""
+    for entry in entries or []:
+        key_id = ((entry.get("logId") or {}).get("keyId") or "")
+        try:
+            as_hex = base64.b64decode(key_id).hex()
+        except (ValueError, binascii.Error):
+            continue
+        if as_hex in wanted:
+            return entry
+    return None
+
+
+def pinned_trust_material(version: str, root_doc: dict, ct_log_ids: list[str],
+                          rekor_log_id: str | None, workdir: Path) -> dict[str, str]:
+    """The environment a LEGACY-bundle `cosign verify-blob` reads its trust
+    material from, written out of the COMMITTED trusted_root.json and
+    selected by the log identifiers the artefact itself names. Raises
+    Refused, naming the log id and the file, when the committed root does
+    not carry one of them -- a stale pin says so rather than falling back to
+    a live TUF fetch."""
+    roots = "".join(
+        _pem(cert["rawBytes"], "CERTIFICATE")
+        for ca in (root_doc.get("certificateAuthorities") or [])
+        for cert in ((ca.get("certChain") or {}).get("certificates") or [])
+    )
+    if not roots:
+        raise Refused(f"policy {version}: the committed {TRUSTED_ROOT_PATH.name} carries no "
+                      "certificate authority chain, so there is nothing to verify a Fulcio "
+                      "certificate against -- refusing rather than fetching a live TUF root")
+
+    ct = _log_entry(root_doc.get("ctlogs"), ct_log_ids)
+    if ct is None:
+        raise Refused(
+            f"policy {version}: this evidence's own certificate names certificate-transparency "
+            f"log id(s) {', '.join(ct_log_ids) or '(none: the certificate carries no SCT)'}, and the "
+            f"committed {TRUSTED_ROOT_PATH.name} carries none of them -- the pinned trust root has "
+            "gone stale for this artefact. Refresh it deliberately (cosign initialize, then commit "
+            "the new copy); this gate will not fetch a live TUF root to paper over it")
+    rekor = _log_entry(root_doc.get("tlogs"), [rekor_log_id] if rekor_log_id else [])
+    if rekor is None:
+        raise Refused(
+            f"policy {version}: this evidence's own bundle names transparency log id "
+            f"{rekor_log_id or '(none: the bundle carries no rekorBundle)'}, and the committed "
+            f"{TRUSTED_ROOT_PATH.name} carries no key for it -- the pinned trust root has gone "
+            "stale for this artefact. Refresh it deliberately; this gate will not fetch a live "
+            "TUF root to paper over it")
+
+    (workdir / "fulcio_roots.pem").write_text(roots)
+    (workdir / "ctfe.pub").write_text(_pem(ct["publicKey"]["rawBytes"], "PUBLIC KEY"))
+    (workdir / "rekor.pub").write_text(_pem(rekor["publicKey"]["rawBytes"], "PUBLIC KEY"))
+    tuf_root = workdir / "empty-tuf-root"
+    tuf_root.mkdir(exist_ok=True)
+    return {
+        "SIGSTORE_ROOT_FILE": str(workdir / "fulcio_roots.pem"),
+        "SIGSTORE_CT_LOG_PUBLIC_KEY_FILE": str(workdir / "ctfe.pub"),
+        "SIGSTORE_REKOR_PUBLIC_KEY": str(workdir / "rekor.pub"),
+        "TUF_ROOT": str(tuf_root),
+    }
+
+
 def verify_evidence(platform_dir: Path, commit: str, version: str,
                      identity_regexp: str, issuer: str, workdir: Path) -> dict:
     """Fetch platform's committed evidence + cosign bundle for `version` at
@@ -334,15 +516,44 @@ def verify_evidence(platform_dir: Path, commit: str, version: str,
             "refusing rather than letting cosign fall back to a live TUF fetch"
         )
 
+    # Ticket 101: the invocation is chosen by the artefact's own shape, and
+    # the pinned trust material reaches cosign through the door that shape
+    # actually opens. Both doors are fed from the one committed file.
+    shape = bundle_shape(bundle_text)
+    if shape is None:
+        raise Refused(
+            f"policy {version}: the committed bundle at computed-semver/evidence/{version}.json"
+            f".bundle (commit {commit}) is neither a legacy cosign bundle (base64Signature/cert) "
+            "nor a new-format Sigstore bundle (mediaType/verificationMaterial), so this gate "
+            "cannot tell which pinned trust material verifies it -- refusing rather than handing "
+            "cosign no trust root and letting it fetch a live one")
+
+    env: dict[str, str] = {}
+    if shape == "new":
+        flags = [f"--trusted-root={TRUSTED_ROOT_PATH}", "--new-bundle-format=true"]
+    else:
+        bundle_doc = json.loads(bundle_text)
+        try:
+            cert_der = base64.b64decode(bundle_doc["cert"])
+            if cert_der.lstrip().startswith(b"-----BEGIN"):
+                cert_der = base64.b64decode(
+                    "".join(line for line in cert_der.decode().splitlines() if "-----" not in line))
+        except (ValueError, binascii.Error, UnicodeDecodeError) as exc:
+            raise Refused(f"policy {version}: the bundle's `cert` field is not a readable "
+                          f"certificate ({exc})") from exc
+        rekor_id = ((bundle_doc.get("rekorBundle") or {}).get("Payload") or {}).get("logID")
+        env = pinned_trust_material(version, json.loads(TRUSTED_ROOT_PATH.read_text()),
+                                    sct_log_ids(cert_der), rekor_id, workdir)
+        flags = []
+
     result = _run([
         "cosign", "verify-blob",
         f"--bundle={bundle_path}",
-        f"--trusted-root={TRUSTED_ROOT_PATH}",
-        "--new-bundle-format=true",  # required by cosign to honor --trusted-root at all
+        *flags,
         f"--certificate-identity-regexp={identity_regexp}",
         f"--certificate-oidc-issuer={issuer}",
         str(evidence_path),
-    ])
+    ], env={**os.environ, **env})
     if result.returncode != 0:
         raise Refused(
             f"policy {version}: cosign verify-blob refused the evidence signature "
@@ -853,7 +1064,14 @@ def selfcheck() -> None:
         _git(repo, "config", "commit.gpgsign", "false")
         (repo / "computed-semver" / "evidence").mkdir(parents=True)
         (repo / "computed-semver" / "evidence" / "3.0.0.json").write_text("{not valid json")
-        (repo / "computed-semver" / "evidence" / "3.0.0.json.bundle").write_text("irrelevant -- cosign is faked below")
+        # A NEW-format bundle: the shape check (ticket 101) runs before the
+        # evidence is parsed, so the fixture has to be a bundle this gate can
+        # read for the JSON guard below to be the thing under test. That door
+        # is --trusted-root, which selects no per-log key, so nothing here
+        # depends on the committed root carrying any particular log.
+        (repo / "computed-semver" / "evidence" / "3.0.0.json.bundle").write_text(
+            '{"mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",'
+            ' "verificationMaterial": {}, "messageSignature": {}}')
         _git(repo, "add", "-A")
         _git(repo, "commit", "-q", "-m", "malformed evidence JSON")
         commit = _run(["git", "-C", str(repo), "rev-parse", "HEAD"]).stdout.strip()
@@ -971,6 +1189,70 @@ def selfcheck() -> None:
           "the composed artefact's own member set classifies major with no policy diff anywhere "
           "in ludlow's own repo -- ADR-0011's 'the composed bump is computed after composition', "
           "proved end to end")
+
+    # 13. Eco-system ticket 101: the trust material this gate hands cosign is
+    #     SELECTED BY THE ARTEFACT, and a bundle shape it cannot read is
+    #     refused by name instead of quietly reaching for a live TUF root.
+    #
+    #     Until 2026-09-06 this gate passed --trusted-root with
+    #     --new-bundle-format=true, and cosign v3.1.3 (the version
+    #     shift-left.yml installs by checksum) answers
+    #     `--trusted-root only supported with --new-bundle-format` to every
+    #     bundle platform has ever published, because those are the LEGACY
+    #     shape. The gate never noticed: diff_versions() only reaches
+    #     verify_evidence() when the composed member set moves, so the defect
+    #     was latent until the next real adoption.
+    assert bundle_shape('{"mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",'
+                        ' "verificationMaterial": {}, "messageSignature": {}}') == "new"
+    assert bundle_shape('{"base64Signature": "x", "cert": "y", "rekorBundle": {}}') == "legacy"
+    assert bundle_shape("this is not a real cosign sigstore bundle") is None
+    assert bundle_shape('{"not": "a real cosign bundle"}') is None
+
+    # The SCT log id really comes out of the certificate's own DER, not out
+    # of anything platform tells us at verification time. Built here from
+    # bytes this test lays down itself, so the parser is graded on structure
+    # rather than on one lucky certificate.
+    planted_log_id = "dd" * 32
+    sct = bytes([0]) + bytes.fromhex(planted_log_id) + b"\x00" * 8 + b"tail"
+    sct_list = len(sct).to_bytes(2, "big") + sct
+    inner = len(sct_list).to_bytes(2, "big") + sct_list
+    ext = _der_octet_string(_der_octet_string(inner))
+    der = b"\x30\x82\x00\x10" + SCT_EXTENSION_OID_DER + ext
+    assert sct_log_ids(der) == [planted_log_id], sct_log_ids(der)
+    assert sct_log_ids(b"\x30\x82\x00\x10no extension here") == []
+
+    # A trusted root that does not carry the log the artefact names must
+    # refuse BY NAME. This is the refusal that replaces a silent live fetch:
+    # a pin that has gone stale says so, in the log id, on the run.
+    planted_root = {
+        "certificateAuthorities": [{"certChain": {"certificates": [{"rawBytes": "QUJD"}]}}],
+        "tlogs": [{"baseUrl": "https://rekor.example", "logId": {"keyId": "3q2+7w=="},
+                   "publicKey": {"rawBytes": "REVG"}}],
+        "ctlogs": [{"baseUrl": "https://ctfe.example", "logId": {"keyId": "3q2+7w=="},
+                    "publicKey": {"rawBytes": "R0hJ"}}],
+    }
+    with tempfile.TemporaryDirectory() as td:
+        env = pinned_trust_material("9.9.9", planted_root, ["deadbeef"], "deadbeef", Path(td))
+        assert Path(env["SIGSTORE_ROOT_FILE"]).read_text().startswith("-----BEGIN CERTIFICATE-----"), env
+        assert Path(env["SIGSTORE_CT_LOG_PUBLIC_KEY_FILE"]).read_text().count("BEGIN PUBLIC KEY") == 1, env
+        assert Path(env["SIGSTORE_REKOR_PUBLIC_KEY"]).read_text().count("BEGIN PUBLIC KEY") == 1, env
+        # TUF_ROOT is pointed at an empty directory this run owns, so a warm
+        # ~/.sigstore cache on somebody's laptop can never stand in for the
+        # committed pin and make an offline claim look true that is not.
+        assert Path(env["TUF_ROOT"]).is_dir(), env
+        assert list(Path(env["TUF_ROOT"]).iterdir()) == [], env
+
+        for missing, ct_ids, rekor_id in (("CT", ["cafe"], "deadbeef"), ("rekor", ["deadbeef"], "cafe")):
+            try:
+                pinned_trust_material("9.9.9", planted_root, ct_ids, rekor_id, Path(td))
+                assert False, f"a {missing} log the committed root does not carry must refuse"
+            except Refused as exc:
+                assert "9.9.9" in str(exc) and "cafe" in str(exc), exc
+                assert "trusted_root.json" in str(exc), exc
+
+    print("OK: the cosign invocation is chosen by the bundle's own shape, the pinned trust material "
+          "is selected by the log identifiers the artefact itself names, and a committed trust root "
+          "that does not carry one of them refuses by name instead of fetching a live TUF root")
 
     print("PASS: adopter_gate.py selfcheck (declared_bump, diff_versions, compose -- retirement=major, "
           "strictest-wins, verification-failure-refuses, wrap_section brackets the markers, "
