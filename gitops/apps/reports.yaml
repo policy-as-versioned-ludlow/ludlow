@@ -1,0 +1,70 @@
+# ludlow's `reports` workload — the SERVED artefact of eco-system ticket 33's lift.
+#
+# This is the file Flux renders once the self-pin moves. `gitops/flux-system/gotk-sync.yaml`'s
+# Kustomization has `path: ./gitops/apps`, and kustomize renders
+# `gitops/apps/kustomization.yaml`'s `resources[]` and nothing else, so this manifest is served
+# only because that list names it. A workload file sitting in this directory unlisted is served
+# to nobody; the hub's verify/lifted-apps/ check reads the path and the list, not the directory.
+#
+# NOT YET SERVED FROM THE PIN. The same file's GitRepository pins `ref: {tag: v1.0.0, commit:
+# ...}`, and that tree's kustomization does not list this file, so a cluster reconciling the pin
+# today is served nothing from here until ludlow cuts a tag and moves its own pin -- which no
+# renovate customManager bumps (they cover the parents only). The hub check counts that on every
+# run (`N of 3 lifts are listed at main and not in the tree the GitRepository pins`) rather than
+# saying "served" (review 2026-09-08, F1).
+#
+# It supersedes `policy-as-versioned-flux/reports`'s own `k8s/deployment.yaml`, and differs from
+# it in four ways, each of which is what a lift means:
+#
+#   1. RE-LABELLED. `mycompany.com/policy-version: "2.0.0"` becomes
+#      `policy-as-versioned.dev/policy-version: "4.0.0"`. The incumbent org's `department:
+#      engineering` label goes with it: it was read by that org's `require-department-label`
+#      policy, which no version in ludlow's composed set carries.
+#   2. RE-PINNED to ludlow's own composed artefact. 4.0.0 is not a number chosen here -- it is
+#      the only version `composed/orphan-guard.yaml`'s allowed array admits, and
+#      `composed/policies/v4.0.0/` is the set that grades this pod. A claim outside that array is
+#      an orphan that reaches no cage at all (ticket 89).
+#   3. RE-NAMESPACED into ludlow's governed Namespace, where the cage tier is declared
+#      (`gitops/apps/namespace.yaml`, `posture.acme.io/tier: isolated`). This manifest carries no
+#      tier label of its own: under 4.0.0 the tier is declared on the Namespace and `cage-tier`
+#      writes the pod label as an OUTPUT (ADR-0022). One declared here would be clobbered.
+#   4. A POD, not a Deployment. Every policy in the composed set matches `pods`; the cage ladder's
+#      held round is pod-only (ticket 09). A Deployment would be graded by nothing this repository
+#      composes, which is the shape of lift this ticket exists to avoid.
+#
+# securityContext: `require-nonroot-4-0-0` validates `runAsNonRoot` on the pod and
+# `readOnlyRootFilesystem` on every container. The image (`python:3.11-slim`) sets no USER, so
+# `runAsNonRoot: true` alone would leave the kubelet refusing to start the container -- the
+# defect driftwood's own pod.yaml hit for real on 2026-08-31 -- hence an explicit numeric
+# `runAsUser`. 1000 is a plain unprivileged uid: `app.py` and the site-packages the image
+# installed are world-readable and CPython needs no entry in /etc/passwd. /tmp is an emptyDir
+# because a read-only root filesystem otherwise denies CPython its temporary directory.
+#
+# NOT OBSERVED: whether this pod actually starts. No citable run of this estate has had a
+# persistent cluster, and the reasoning above is reasoning, not an observation. The hub's
+# verify/lifted-apps/ check prints that as a blind spot on every run rather than implying
+# otherwise; the live half is this repository's own drift-sample lane.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: reports
+  namespace: ludlow
+  labels:
+    app: reports
+    app.kubernetes.io/part-of: ludlow
+    policy-as-versioned.dev/policy-version: "4.0.0"
+spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+  containers:
+    - name: reports
+      image: ghcr.io/policy-as-versioned-flux/reports@sha256:36dc3d7d1bd5193f46a55d57b505beb5e99d7925f65b0fad3c1f7d1aeafefcf5
+      ports:
+        - containerPort: 8080
+      securityContext:
+        readOnlyRootFilesystem: true
+      volumeMounts:
+        - { name: tmp, mountPath: /tmp }
+  volumes:
+    - { name: tmp, emptyDir: {} }
