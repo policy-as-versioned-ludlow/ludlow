@@ -641,6 +641,10 @@ e5_out=$(offline cosign verify-blob --bundle="$e_bundle" \
 e5_code=$?
 set -e
 echo "$e5_out"
+# The NUMBER, printed, not only asserted: ticket 101 and ticket 105 both cite this line as the
+# exit code ludlow's harness prints on every run, the way driftwood's and tuppence's scenario G
+# do, and a harness that only asserts non-zero prints no number anyone can quote.
+echo "the same real bundle (policy ${e_version}) WITHOUT the committed trust material, cold TUF cache, every proxy pointed at a closed port: exit ${e5_code}"
 [ "$e5_code" -ne 0 ] || fail "E5: an unpinned verification succeeded with a cold TUF cache and blocked egress -- the cache is not actually cold, so E2's offline claim is not being proved"
 echo "$e5_out" | grep -qiE "tuf|dial tcp|connection refused" \
   || fail "E5: the unpinned verification failed for a reason that is not the network: $e5_out"
