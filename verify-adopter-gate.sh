@@ -388,7 +388,12 @@ say "Part E: platform's REAL PUBLISHED evidence, through this gate's own CLI, of
 # old Part E missed it by proving the offline property against a bundle it
 # signed locally, which is in the NEW format -- a fixture whose shape happened
 # to match the flag the served artefact does not have -- and by invoking
-# cosign DIRECTLY rather than through the gate.
+# cosign DIRECTLY rather than through the gate. Eco-system ticket 105
+# (2026-09-09) moved the gate onto the --trusted-root door for EVERY bundle,
+# re-encoding a legacy one locally first, so the whole committed root (every
+# log, every validFor window) is what verifies; E2-E5 measure that door and
+# E6 doctors the committed root one field at a time and grades a refusal on
+# the trust material rather than on the network, cold and warm.
 #
 # So: the served artefact is platform's own committed
 # computed-semver/evidence/<version>.json[.bundle] at the tag THIS repository
@@ -623,7 +628,7 @@ e4_code=$(run_gate_e e4 '^https://github\.com/evil-org/platform/\.github/workflo
 cat "$scratch/e4.out"
 [ "$e4_code" -eq 1 ] || fail "E4: a foreign identity regexp must refuse platform's real evidence, got exit $e4_code"
 grep -qi "cosign verify-blob refused" "$scratch/e4.out" || fail "E4: the refusal does not name cosign's own refusal"
-grep -qi "none of the expected identities matched" "$scratch/e4.out" \
+grep -qiE "none of the expected identities matched|no matching CertificateIdentity found" "$scratch/e4.out" \
   || fail "E4: the refusal does not name an identity mismatch -- it may have failed for some other reason"
 echo "OK: the same real, valid bundle is REFUSED when the identity constant names a foreign publisher -- the certificate is really being read"
 
@@ -651,6 +656,88 @@ echo "$e5_out" | grep -qiE "tuf|dial tcp|connection refused" \
 echo "OK: without the committed trust material the identical bytes cannot be verified offline at all -- the pin is what makes E2 offline, and it is measured on this run, not asserted"
 
 echo
+echo "-- E6: the pin is load-bearing -- a wrong, corrupt, retired or absent trust root REFUSES, cold and warm --"
+# The pin is load-bearing (eco-system ticket 105). Each case copies this repository's own gate
+# beside a DOCTORED copy of its committed trusted_root.json -- one field changed, named -- and
+# runs it against platform's REAL, untampered bundle with a cold TUF cache and every proxy
+# pointed at a closed port. Every case must REFUSE, and refuse on the trust material, never on
+# the network: a refusal that mentions a TUF fetch would mean the gate went looking for a root
+# it was not given, which is the fallback the pin exists to rule out. `genuine` runs the same
+# copied gate with the real root and must ACCEPT, so that a broken copy cannot make every other
+# case a vacuous refusal.
+doctor_root() {  # $1 case, $2 source trusted_root.json, $3 destination
+  python3 - "$1" "$2" "$3" <<'PY'
+import json, sys
+case, src, dst = sys.argv[1:]
+root = json.load(open(src))
+ct_current = next(log for log in root["ctlogs"] if "end" not in log["publicKey"]["validFor"])
+if case == "genuine":
+    pass
+elif case == "wrong-rekor-key":            # the Rekor log id stays; its key is the CT log's (same key type, so the root loads and the SET check is what refuses)
+    for log in root["tlogs"]:
+        if log["publicKey"].get("keyDetails") == ct_current["publicKey"].get("keyDetails"):
+            log["publicKey"]["rawBytes"] = ct_current["publicKey"]["rawBytes"]
+elif case == "corrupt-rekor-key":          # not a key at all
+    for log in root["tlogs"]:
+        log["publicKey"]["rawBytes"] = "AAAA"
+elif case == "wrong-ct-key":               # the CT log id stays; its key is Rekor's
+    for log in root["ctlogs"]:
+        log["publicKey"]["rawBytes"] = root["tlogs"][0]["publicKey"]["rawBytes"]
+elif case == "wrong-fulcio-root":          # every CA chain replaced by the timestamp authority's
+    tsa = root["timestampAuthorities"][0]["certChain"]
+    root["certificateAuthorities"] = [dict(ca, certChain=tsa) for ca in root["certificateAuthorities"]]
+elif case == "ct-window-closed":           # the current CT key retired before the artefact was signed
+    ct_current["publicKey"]["validFor"]["end"] = "2026-01-01T00:00:00Z"
+else:
+    raise SystemExit(f"unknown case {case}")
+json.dump(root, open(dst, "w"))
+PY
+}
+
+e6_root="$HERE/.github/scripts/trusted_root.json"
+attack() {  # $1 case, $2 "cold"|"warm" -> exit code on stdout, output in $scratch/e6-<case>-<home>.out
+  local dir="$scratch/gate-$1"; mkdir -p "$dir"; cp "$GATE" "$dir/adopter_gate.py"
+  [ "$1" = absent-root ] || doctor_root "$1" "$e6_root" "$dir/trusted_root.json"
+  set +e
+  if [ "$2" = warm ]; then
+    HOME="$HOME" TUF_ROOT="$scratch/e-tuf" \
+      HTTPS_PROXY="$BLOCKED_PROXY" HTTP_PROXY="$BLOCKED_PROXY" ALL_PROXY="socks5://127.0.0.1:1" \
+      https_proxy="$BLOCKED_PROXY" http_proxy="$BLOCKED_PROXY" all_proxy="socks5://127.0.0.1:1" \
+      NO_PROXY="" no_proxy="" timeout 60 python3 "$dir/adopter_gate.py" --ludlow-dir "$e_ludlow" --platform-dir "$e_platform" \
+      --old-ref "$e_old_ref" --new-ref "$e_new_ref" --out-comment "$scratch/e6-$1-$2.md" \
+      --identity-regexp "$REGEXP" --issuer "https://token.actions.githubusercontent.com" > "$scratch/e6-$1-$2.out" 2>&1
+  else
+    offline python3 "$dir/adopter_gate.py" --ludlow-dir "$e_ludlow" --platform-dir "$e_platform" \
+      --old-ref "$e_old_ref" --new-ref "$e_new_ref" --out-comment "$scratch/e6-$1-$2.md" \
+      --identity-regexp "$REGEXP" --issuer "https://token.actions.githubusercontent.com" > "$scratch/e6-$1-$2.out" 2>&1
+  fi
+  local code=$?
+  set -e
+  echo "$code"
+}
+e6_ok=$(attack genuine cold)
+[ "$e6_ok" -eq 0 ] || fail "E6: the copied gate with the GENUINE root did not accept (exit $e6_ok), so nothing below would mean anything: $(tail -1 "$scratch/e6-genuine-cold.out")"
+echo "OK: E6[genuine] -- the copied gate with the real committed root ACCEPTS, cold (exit 0); the copy mechanism is sound"
+for case in absent-root wrong-rekor-key corrupt-rekor-key wrong-ct-key wrong-fulcio-root ct-window-closed; do
+  for home in cold warm; do
+    code=$(attack "$case" "$home")
+    tail_line=$(tail -1 "$scratch/e6-$case-$home.out")
+    [ "$code" -ne 0 ] || fail "E6[$case,$home]: the gate ACCEPTED platform's bundle with a doctored trust root -- the pin is not load-bearing"
+    if [ "$case" = absent-root ]; then
+      grep -q "no committed Sigstore trust root" "$scratch/e6-$case-$home.out" \
+        || fail "E6[$case,$home]: the refusal does not name the absent root: $tail_line"
+    else
+      grep -qi "cosign verify-blob refused" "$scratch/e6-$case-$home.out" \
+        || fail "E6[$case,$home]: the refusal is not cosign's own: $tail_line"
+    fi
+    grep -qiE "tuf: |dial tcp|connection refused" "$scratch/e6-$case-$home.out" \
+      && fail "E6[$case,$home]: the refusal mentions the network -- the gate went looking for a root it was not given: $tail_line"
+    echo "OK: E6[$case,$home] -- REFUSED, exit ${code}, on the trust material and not the network: $(echo "$tail_line" | cut -c1-150)"
+  done
+done
+echo "    (warm = this machine's own HOME, whose ~/.sigstore is warm on a laptop that has ever run cosign online and cold on a CI runner; either way the doctored root, not a cached one, is what refused)"
+
+echo
 echo "PASS: verify-adopter-gate.sh -- identity regexp (match/reject/rename-breaks-it), resolved-commit refusal,"
 echo "      retirement-forces-major, composed-major fails the check, weaker-than-declared is informational-only,"
 echo "      a bundle shape this gate cannot read is refused by name and a missing evidence file before that,"
@@ -659,6 +746,8 @@ echo "      or duplicating markers, and -- against platform's REAL PUBLISHED evi
 echo "      pins, through adopter_gate.py's own CLI, with a cold TUF cache and egress hard-blocked -- real cosign"
 echo "      ACCEPTS platform's own signature (E2, exit 0), REFUSES the same bundle with one signature byte changed"
 echo "      (E3), REFUSES it under a foreign identity constant (E4), cannot verify it at all without the committed"
-echo "      trust material (E5), and still refuses the pre-2026-09-06 --trusted-root invocation on the flag (E1)."
+echo "      trust material (E5), still refuses the pre-2026-09-06 --trusted-root invocation on the flag (E1), and"
+echo "      REFUSES on the trust material and never on the network when the committed root is wrong, corrupt,"
+echo "      retired or absent, cold and warm (E6, eco-system ticket 105)."
 echo "      Out of reach here and dated 2026-09-06: SIGNING new evidence (Fulcio keyless needs a live Actions"
 echo "      credential). Verifying what platform already signed is not, and is proved above."
