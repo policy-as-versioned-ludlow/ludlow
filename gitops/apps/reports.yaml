@@ -1,10 +1,17 @@
 # ludlow's `reports` workload — the SERVED artefact of eco-system ticket 33's lift.
 #
-# This is the file Flux reconciles. `gitops/flux-system/gotk-sync.yaml`'s Kustomization has
-# `path: ./apps`, and kustomize renders `gitops/apps/kustomization.yaml`'s `resources[]` and
-# nothing else, so this manifest is served only because that list names it. A workload file
-# sitting in this directory unlisted is served to nobody; the hub's verify/lifted-apps/ check
-# grades the list, not the directory, for exactly that reason.
+# This is the file Flux renders once the self-pin moves. `gitops/flux-system/gotk-sync.yaml`'s
+# Kustomization has `path: ./gitops/apps`, and kustomize renders
+# `gitops/apps/kustomization.yaml`'s `resources[]` and nothing else, so this manifest is served
+# only because that list names it. A workload file sitting in this directory unlisted is served
+# to nobody; the hub's verify/lifted-apps/ check reads the path and the list, not the directory.
+#
+# NOT YET SERVED FROM THE PIN. The same file's GitRepository pins `ref: {tag: v1.0.0, commit:
+# ...}`, and that tree's kustomization does not list this file, so a cluster reconciling the pin
+# today is served nothing from here until ludlow cuts a tag and moves its own pin -- which no
+# renovate customManager bumps (they cover the parents only). The hub check counts that on every
+# run (`N of 3 lifts are listed at main and not in the tree the GitRepository pins`) rather than
+# saying "served" (review 2026-09-08, F1).
 #
 # It supersedes `policy-as-versioned-flux/reports`'s own `k8s/deployment.yaml`, and differs from
 # it in four ways, each of which is what a lift means:
