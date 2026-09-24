@@ -744,6 +744,94 @@ for case in absent-root wrong-rekor-key corrupt-rekor-key wrong-ct-key wrong-ful
 done
 echo "    (warm = this machine's own HOME, whose ~/.sigstore is warm on a laptop that has ever run cosign online and cold on a CI runner; either way the doctored root, not a cached one, is what refused)"
 
+# ---------------------------------------------------------------------------
+say "Part J: the real v3.3.0 rollout (pull request 33) -- an accepted major is admitted, and only an accepted one"
+# ---------------------------------------------------------------------------
+# Eco-system ticket 132. The subject is this repository's own history, not a planting: the commit
+# before pull request 33 merged (base) and its merge commit (head). Between them the composed
+# window moves from [4.0.0] to [4.0.0, 5.0.0], platform's signed evidence at v3.3.0 records 5.0.0
+# as major, and the head carries accepted-majors/platform-5.0.0.yaml, the owner's acceptance of
+# 2026-09-23. The merge commit is named, not HEAD, so a later change to main cannot move what this
+# part grades. Three variants then commit on top of that head in a throwaway clone: the record
+# removed, the record naming another version, and the record naming another party. The gate runs
+# in the flag shape shift-left.yml uses, with real cosign and the identity constant read out of
+# shift-left.yml in Part A.
+ROLLOUT_MERGE=c017bb701ee4f0966030e684e09f249a835ab2fa
+git -C "$HERE" cat-file -e "${ROLLOUT_MERGE}^{commit}" 2>/dev/null \
+  || skip "J: this checkout does not carry the v3.3.0 rollout's merge commit ${ROLLOUT_MERGE:0:12} (a shallow clone?), so the real rollout cannot be replayed"
+j_repo="$scratch/ludlow-j"
+git clone --quiet --no-checkout "$HERE" "$j_repo"
+git -C "$j_repo" fetch --quiet "$HERE" "$ROLLOUT_MERGE"
+j_base=$(git -C "$j_repo" rev-parse "${ROLLOUT_MERGE}^1")
+j_tag=$(git -C "$j_repo" show "${ROLLOUT_MERGE}:gitops/platform/platform-pin.yaml" | python3 -c '
+import sys, yaml
+for doc in yaml.safe_load_all(sys.stdin):
+    if isinstance(doc, dict) and doc.get("kind") == "GitRepository":
+        print(doc["spec"]["ref"]["tag"]); break')
+j_platform="$scratch/platform-j"
+git clone --local --quiet "$platform_repo" "$j_platform"
+git -C "$j_platform" rev-parse -q --verify "refs/tags/${j_tag}^{commit}" > /dev/null \
+  || skip "J: the clone of platform carries no tag ${j_tag}, the tag the rollout pins"
+git -C "$j_platform" -c advice.detachedHead=false checkout --quiet "$j_tag"
+echo "the rollout: base ${j_base:0:12}, head ${ROLLOUT_MERGE:0:12} (platform ${j_tag})"
+
+gate_rollout() {  # $1 head ref, $2 out prefix -> exit code on stdout
+  set +e
+  python3 "$GATE" --ludlow-dir "$j_repo" --platform-dir "$j_platform" \
+    --old-ref "$j_base" --new-ref "$1" \
+    --composed-base-ref "$j_base" --composed-head-ref "$1" \
+    --out-comment "$scratch/$2.md" \
+    --identity-regexp "$REGEXP" --issuer "https://token.actions.githubusercontent.com" \
+    > "$scratch/$2.out" 2>&1
+  local code=$?
+  set -e
+  echo "$code"
+}
+j_variant() {  # $1 branch name, $2 python that edits the record in place ("" removes it) -> head sha
+  git -C "$j_repo" checkout --quiet -B "$1" "$ROLLOUT_MERGE"
+  if [ -z "$2" ]; then
+    git -C "$j_repo" rm --quiet accepted-majors/platform-5.0.0.yaml
+  else
+    python3 -c "$2" "$j_repo/accepted-majors/platform-5.0.0.yaml"
+    git -C "$j_repo" add accepted-majors/platform-5.0.0.yaml
+  fi
+  git -C "$j_repo" -c user.name=t -c user.email=t@example.invalid -c commit.gpgsign=false \
+    commit --quiet -m "J: $1"
+  git -C "$j_repo" rev-parse HEAD
+}
+
+j_code=$(gate_rollout "$ROLLOUT_MERGE" j)
+tail -2 "$scratch/j.out"
+[ "$j_code" -eq 0 ] || fail "J: the real rollout carries an acceptance of 5.0.0 for ludlow and the gate still refused it (exit $j_code): $(tail -2 "$scratch/j.out")"
+grep -q "^| bump | \*\*major\*\* | \*\*major\*\* |" "$scratch/j.md" \
+  || fail "J: the gate adopted, but the comment it renders does not carry the composed major: $(grep '^| bump' "$scratch/j.md")"
+grep -q "admitted: every major this pull request adds is accepted" "$scratch/j.md" \
+  || fail "J: the comment does not say the composed major was admitted"
+grep -q "accepted-majors/platform-5.0.0.yaml at ${ROLLOUT_MERGE:0:12}" "$scratch/j.md" \
+  || fail "J: the comment does not name the record and the commit it was read at"
+echo "OK: J[accepted] -- the real rollout composes major (5.0.0 added), and the gate admits it on accepted-majors/platform-5.0.0.yaml at ${ROLLOUT_MERGE:0:12}"
+
+for variant in removed other-version other-party; do
+  case "$variant" in
+    removed) edit=""; label="removed" ;;
+    other-version) label="naming 5.0.1"; edit='import sys, pathlib; p = pathlib.Path(sys.argv[1]); p.write_text(p.read_text().replace("version: 5.0.0", "version: 5.0.1"))' ;;
+    other-party) label="naming tuppence"; edit='import sys, pathlib; p = pathlib.Path(sys.argv[1]); p.write_text(p.read_text().replace("party: ludlow", "party: tuppence"))' ;;
+  esac
+  j_head=$(j_variant "j-$variant" "$edit")
+  code=$(gate_rollout "$j_head" "j-$variant")
+  tail -1 "$scratch/j-$variant.out"
+  [ "$code" -ne 0 ] || fail "J[$variant]: the rollout with its record $label must refuse, got exit 0"
+  grep -q "^REFUSE: composed bump is major" "$scratch/j-$variant.out" \
+    || fail "J[$variant]: the refusal does not name the composed major: $(tail -1 "$scratch/j-$variant.out")"
+  grep -q "5.0.0" "$scratch/j-$variant.out" || fail "J[$variant]: the refusal does not name 5.0.0"
+  grep -q "not admitted" "$scratch/j-$variant.md" || fail "J[$variant]: the comment does not say the major was not admitted"
+  if [ "$variant" = other-party ]; then
+    grep -q "for tuppence, not for ludlow" "$scratch/j-$variant.out" \
+      || fail "J[other-party]: the refusal does not name the record that accepts 5.0.0 for another party"
+  fi
+  echo "OK: J[$variant] -- the same rollout with its record $label REFUSES, exit ${code}, naming 5.0.0"
+done
+
 echo
 echo "PASS: verify-adopter-gate.sh -- identity regexp (match/reject/rename-breaks-it), resolved-commit refusal,"
 echo "      retirement-forces-major, composed-major fails the check, weaker-than-declared is informational-only,"
@@ -755,6 +843,8 @@ echo "      ACCEPTS platform's own signature (E2, exit 0), REFUSES the same bund
 echo "      (E3), REFUSES it under a foreign identity constant (E4), cannot verify it at all without the committed"
 echo "      trust material (E5), still refuses the pre-2026-09-06 --trusted-root invocation on the flag (E1), and"
 echo "      REFUSES on the trust material and never on the network when the committed root is wrong, corrupt,"
-echo "      retired or absent, cold and warm (E6, eco-system ticket 105)."
+echo "      retired or absent, cold and warm (E6, eco-system ticket 105). Eco-system ticket 132: the real v3.3.0"
+echo "      rollout composes major and is admitted on its own acceptance record, and refuses when that record is"
+echo "      removed or names another version or party (J)."
 echo "      Out of reach here and dated 2026-09-06: SIGNING new evidence (Fulcio keyless needs a live Actions"
 echo "      credential). Verifying what platform already signed is not, and is proved above."
