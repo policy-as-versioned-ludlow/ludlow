@@ -14,6 +14,7 @@ Source: `composed/HEADER.yaml` → `parents[]`. Each row is a publisher this art
 | nist | controls | — | 1.1.0 | `33a05df1f5241bca6ffbc1c69a70075cdb7a5819` |
 | ico | feed | penalty-schema | v3 | `e1fb8eb5663e50088b13d872a4e44112476f516e` |
 | feeds | feed | threat-register | v1 | `50a0b330a730f4f9ee9520561b0c05c8be4c9268` |
+| feeds | feed | eol | v2 | `ddace466f0cc410f228aeff3b4c5704eeea15a30` |
 
 ## 2. What is actually installed
 
@@ -68,35 +69,43 @@ Source: `composed/evidence.json` → `prices[]`, and `composed/HEADER.yaml` → 
 | ico | feed | penalty-schema | ludlow | GBP | GBP 9,039,791.02 | no | isolated |
 | ico | supersede | penalty-schema | ludlow | GBP | GBP 0.00 | no | — |
 | feeds | feed | threat-register | ludlow | GBP | GBP 318,229.78 | no | isolated |
-| feeds | supersede | threat-register | ludlow | GBP | GBP 0.00 | no | — |
+| feeds | supersede | threat-register | ludlow | GBP | GBP 6,103.04 | no | — |
+| feeds | feed | eol | ludlow | GBP | GBP 772,556.59 | no | isolated |
 | ico | switching | penalty-schema | ludlow | GBP | GBP 9,039,791.02 | no | — |
-| feeds | switching | threat-register | ludlow | GBP | GBP 318,229.78 | no | — |
+| feeds | switching | threat-register | ludlow | GBP | GBP 1,090,786.37 | no | — |
+| feeds | switching | eol | ludlow | GBP | GBP 1,090,786.37 | no | — |
 
 - **ico/penalty-schema** — Publisher tags were observed when this artefact was composed; the recorded observation is replayed offline and during verification. It does not establish the publisher's current newest major. A fresh composition with the publisher present refreshes it.
 - **ico/penalty-schema** — basis: lm sourced from ICO (Information Commissioner's Office) real public fines (UK GDPR / Data Protection Act 2018 s157). warn/deny lef are editorial (schema doesn't carry frequency). Not sized to any subscriber: priced at the statutory cap.
-- **ico/penalty-schema supersede** — clock starts 2026-09-10; priced as of 2026-08-28. zero (as_of 2026-08-28 precedes the tag day 2026-09-10): the signed artefact's as-of is its newest signed input; only a re-composition --as-of a later day (the scheduled proposer's) grows this line; the pinned checkout carries no directory for v4.0.0, so the newer major's content is unread here: this line is priced from the signed tags alone, and no retirement to v4 is proposed until the ico pin reaches a commit that carries it
+- **ico/penalty-schema supersede** — clock starts 2026-09-10; priced as of 2026-09-08. zero (as_of 2026-09-08 precedes the tag day 2026-09-10): the signed artefact's as-of is its newest signed input; only a re-composition --as-of a later day (the scheduled proposer's) grows this line; the pinned checkout carries no directory for v4.0.0, so the newer major's content is unread here: this line is priced from the signed tags alone, and no retirement to v4 is proposed until the ico pin reaches a commit that carries it
 - **ico/penalty-schema** (supersede) — basis: the pinned line's own amount x (eol_ramp(since, as_of) - 1): the surcharge the feeds module's EOL ramp puts on a version its publisher has superseded, +1x per year behind and capped at +4x, where `since` is the day the newer major's signing tag was cut; zero on that day, printed with both dates, and never summed into the exposure the line itself is already in
 - **feeds/threat-register** — Publisher tags were observed when this artefact was composed; the recorded observation is replayed offline and during verification. It does not establish the publisher's current newest major. A fresh composition with the publisher present refreshes it.
 - **feeds/threat-register** — basis: confidential health-record exfiltration (HIPAA, decades-confidential, HNDL/harvest-now-decrypt-later exposure). lef sourced from DBIR healthcare-sector base rate, editorial midpoint -- lower frequency, far higher confidentiality horizon. MAGNITUDE UNSOURCED: the impact per event (20000.0, 100000.0, 400000.0) GBP is not in payload version v1, which predates the publisher's `lm_gbp` field; it is this converter's frozen copy of the adopter-keyed table that used to live in the SUBSCRIBER's own code (platform/feeds/to_fair_scenario.py THREAT_LM_GBP). From major 3 the number and its basis are in the payload. A named could-not-look (eco-system ticket 79 item 4), never a bare number.
-- **feeds/threat-register supersede** — clock starts 2026-09-01; priced as of 2026-08-28. zero (as_of 2026-08-28 precedes the tag day 2026-09-01): the signed artefact's as-of is its newest signed input; only a re-composition --as-of a later day (the scheduled proposer's) grows this line
+- **feeds/threat-register supersede** — clock starts 2026-09-01; priced as of 2026-09-08. 
 - **feeds/threat-register** (supersede) — basis: the pinned line's own amount x (eol_ramp(since, as_of) - 1): the surcharge the feeds module's EOL ramp puts on a version its publisher has superseded, +1x per year behind and capped at +4x, where `since` is the day the newer major's signing tag was cut; zero on that day, printed with both dates, and never summed into the exposure the line itself is already in
+- **feeds/eol** — Publisher tags were observed when this artefact was composed; the recorded observation is replayed offline and during verification. It does not establish the publisher's current newest major. A fresh composition with the publisher present refreshes it.
+- **feeds/eol** — basis: eol_date=2024-02-21, as_of=2026-09-08, ramp=3.55x. Source: endoflife.date/istio. headline entry istio-1.18 of 4 (largest mode-product entry, mode lef x mode lm -- an ordinal proxy, not fair.py's PERT expectation; ticket 75 Q4); not priced by this line: kyverno-1.10, ubuntu-20.04, python-3.9.
 - **ico/penalty-schema** (switching) — basis: re-composed with this publisher's feed edges dropped
 - **feeds/threat-register** (switching) — basis: re-composed with this publisher's feed edges dropped
+- **feeds/eol** (switching) — basis: re-composed with this publisher's feed edges dropped
 
 - **ico/penalty-schema** carries 4 priced hole(s) inside that amount: `nist/pl-2` GBP 2,711,937.31, `nist/ra-3` GBP 2,711,937.31, `nist/ca-2` GBP 1,807,958.20, `nist/ir-8` GBP 1,807,958.20
+- **feeds/eol** is itself a priced hole: untagged-pin `feeds/eol@v2` — no signed tag eol/v2.x.y (or v2.x.y) exists on the feeds parent's checkout, which carries 3 tag(s) of its own, priced at the whole entry (GBP 772,556.59).
 
 **Exposure** — booked under perspective `ludlow` in `GBP`.
 
-- Total: GBP 9,358,020.80
+- Total: GBP 10,130,577.39
   - What this number is: an ordinal, auditable comparison under one perspective; not an expected annual loss.
   - Every figure under this section is derived from published feeds through published converters, and is reproducible from the signed inputs named beside it -- that is what AUDITABLE means here. What it is NOT: the loss-event frequencies and several loss magnitudes it rests on are editorial bands carrying a named could-not-look rather than counted rates (ico penalty-schema major 4, feeds threat-register major 3), so the total is usable for COMPARING one version, one pin or one control set against another under this one perspective, and not as a number to reserve against. Totals under two different perspectives are two balance sheets and are never added (ADR-0021). Ticket 75 Q4 (a), eco-system ticket 79 item 10.
-- Aggregate of the selected-tier residuals: GBP 187,160.42 against a tolerance of GBP 5,000.00 -- BREACHES the declared aggregate.
+- Aggregate of the selected-tier residuals: GBP 202,611.55 against a tolerance of GBP 5,000.00 -- BREACHES the declared aggregate.
   - `penalty-schema` at tier `isolated`: GBP 180,795.82
   - `threat-register` at tier `isolated`: GBP 6,364.60
+  - `eol` at tier `isolated`: GBP 15,451.13
 - Attachment: GBP 5,000.00
-- Regimes (2):
+- Regimes (3):
   - `uk-gdpr` from ico feed `penalty-schema` v3: GBP 9,039,791.02, 4 control(s) named
   - `threat-register` from feeds feed `threat-register` v1: GBP 318,229.78, 0 control(s) named
+  - `eol` from feeds feed `eol` v2: GBP 772,556.59, 0 control(s) named
 
 ### Floor comparison
 
@@ -108,6 +117,7 @@ Could not look: previous floor was not recorded; absence of history is not an ab
 
 - ico/penalty-schema: unknown → isolated; retained residual unknown → GBP 180,795.82; delta unknown.
 - feeds/threat-register: unknown → isolated; retained residual unknown → GBP 6,364.60; delta unknown.
+- feeds/eol: unknown → isolated; retained residual unknown → GBP 15,451.13; delta unknown.
 
 Instrument: `platform-cage-tiers@1.0.0`. selection evidence, not an enacted Namespace tier; platform reductions are self-declared calibration, not measured effectiveness.
 
@@ -121,7 +131,7 @@ Source: `composed/HEADER.yaml` → `baseline`, `selected-controls`, `holes`; `co
 - So 2 of 287 selected controls have an implementation in this artefact. A hole is priced, never refused (ADR-0020).
 - `refusals[]`: 0
 - `restatements[]`: 0
-- `deltas[]`: 0
+- `deltas[]`: 1
 - `ungoverned[]`: 0
 
 ## 6. What this handbook cannot say
@@ -154,4 +164,4 @@ Two things this page can never tell you, by construction, and neither is a field
 
 ---
 
-Counted from the artefact: 4 publisher(s), 26 installed object(s), 26 recorded member(s), 6 price(s), 287 selected control(s), 285 hole(s), 2 recorded limit(s), 10 named absence(s).
+Counted from the artefact: 5 publisher(s), 26 installed object(s), 26 recorded member(s), 8 price(s), 287 selected control(s), 285 hole(s), 2 recorded limit(s), 10 named absence(s).
