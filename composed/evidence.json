@@ -3039,7 +3039,7 @@
         "version": "v2",
         "perspective": "ludlow",
         "currency": "GBP",
-        "status": "new",
+        "status": "recorded",
         "amount": 772556.5869891699,
         "priced_by": "feeds eol@v2: the exposure the pin prices, read off a feed no signed tag carries",
         "detail": "no signed tag eol/v2.x.y (or v2.x.y) exists on the feeds parent's checkout, which carries 3 tag(s) of its own"
@@ -3186,19 +3186,7 @@
       ]
     }
   ],
-  "deltas": [
-    {
-      "kind": "new-untagged-pin",
-      "source": "feeds",
-      "name": "eol",
-      "version": "v2",
-      "perspective": "ludlow",
-      "currency": "GBP",
-      "amount": 772556.5869891699,
-      "priced_by": "feeds eol@v2: the exposure the pin prices, read off a feed no signed tag carries",
-      "detail": "ludlow pins feeds/eol@v2 and no signed tag eol/v2.x.y (or v2.x.y) exists on the feeds parent's checkout, which carries 3 tag(s) of its own; 772556.59 GBP of exposure is booked against an unsigned feed"
-    }
-  ],
+  "deltas": [],
   "floor_change": {
     "schema": 1,
     "before": {
