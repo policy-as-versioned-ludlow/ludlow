@@ -6,8 +6,8 @@ policy-as-versioned.dev/composed: true
 parents:
 - party: platform
   kind: implementations
-  version: 3.3.0
-  sha: 38089a68769453db9ea3faf0ee637ae93f309980
+  version: 4.0.0
+  sha: 557c1538fe022c784ea4ffb345c92d2e4b11fe71
 - party: nist
   kind: controls
   version: 1.1.0
@@ -616,7 +616,7 @@ ungoverned-namespaces: []
 withdrawn-selectable: false
 comparison-inputs:
   schema: 1
-  after: b659f6718968e949a527a7204503eff2195ddbbb8964fa597f460882cf8343ca
+  after: 577c3e1f4bb084cb3db754e9e8b41401dfae87ef117ea658a857310fe2ac398a
   before:
     header:
       parents:
