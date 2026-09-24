@@ -616,7 +616,7 @@ ungoverned-namespaces: []
 withdrawn-selectable: false
 comparison-inputs:
   schema: 1
-  after: 08d5207658024f51cb9c13528c38cb1f6c158159637a564503023884f3dc044f
+  after: 3e6d5ae3602f8f974526ae63f36c9eca34d9afc6eab2fe191713690b9e469ce2
   before:
     header:
       parents:
@@ -638,6 +638,11 @@ comparison-inputs:
         name: threat-register
         version: v1
         sha: 50a0b330a730f4f9ee9520561b0c05c8be4c9268
+      - party: feeds
+        kind: feed
+        name: eol
+        version: v2
+        sha: ddace466f0cc410f228aeff3b4c5704eeea15a30
       baseline: MODERATE
       holes:
       - ac-1
@@ -1237,6 +1242,12 @@ comparison-inputs:
       name: threat-register
       proposed_tier: null
       hole: null
+    - kind: feed
+      source: feeds
+      name: eol
+      proposed_tier: isolated
+      hole:
+        status: new
     - kind: switching
       source: ico
       name: penalty-schema
@@ -1245,6 +1256,11 @@ comparison-inputs:
     - kind: switching
       source: feeds
       name: threat-register
+      proposed_tier: null
+      hole: null
+    - kind: switching
+      source: feeds
+      name: eol
       proposed_tier: null
       hole: null
     cages: []
