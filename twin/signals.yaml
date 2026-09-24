@@ -34,8 +34,9 @@ signals:
         (pull request 33), and that move added policy 5.0.0, a major accepted for ludlow in
         accepted-majors/platform-5.0.0.yaml. It moved from 3.3.0 to 4.0.0 on 2026-09-24, and
         that move retired policy 4.0.0 on the owner's instruction, so 5.0.0 is the only line
-        served. `at` is that re-derivation date, not the subscription's `since`, which still
-        records when ludlow first pinned platform at all.
+        served. `at` is that re-derivation date, not the subscription's `since`. `since` is
+        2026-08-28, the day party.yaml first dated its edges (ticket 21). ludlow pinned platform
+        before that date, so `since` is not when it first pinned platform at all.
 
   - pin: { party: nist, kind: controls, version: '1.1.0' }
     signal:

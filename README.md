@@ -21,8 +21,9 @@ comparison (same control → Audit in `driftwood`, Deny here, because the £ dif
 
 `.github/platform-tools-pin.yaml` pins the compiler software independently of
 `gitops/platform/platform-pin.yaml` and `party.yaml`'s implementation inheritance.
-The compiler is currently `v3.3.0`, and so is the accepted implementation
-(policy members `{4.0.0, 5.0.0}`). Updating tools does not accept a new policy window.
+The compiler is currently `v4.0.0`, and so is the accepted implementation
+(policy members `{5.0.0}`; platform v4.0.0 retired policy 4.0.0). Updating tools
+does not accept a new policy window.
 The existing adopter gate still refuses additions classified as major. The owner
 accepted policy 5.0.0 on 2026-09-23; `accepted-majors/platform-5.0.0.yaml` records it.
 

@@ -24,9 +24,9 @@
 #      the version ludlow accepted on 2026-09-23 (`accepted-majors/platform-5.0.0.yaml`) and one
 #      `composed/orphan-guard.yaml`'s allowed array admits, and `composed/policies/v5.0.0/` is the
 #      set that grades this pod. The claim moved from 4.0.0 on 2026-09-24 (Phase B,
-#      owner-instructed): 4.0.0 retires from platform. The array still holds 4.0.0 as well until
-#      that retirement lands. A claim outside the array is an orphan that reaches no cage at
-#      all (ticket 89).
+#      owner-instructed): 4.0.0 retires from platform. Platform v4.0.0 retired it, and the
+#      composed array holds 5.0.0 only, at ludlow's v3.0.0 tag. A claim outside the array is an orphan
+#      that reaches no cage at all (ticket 89).
 #   3. RE-NAMESPACED into ludlow's governed Namespace, where the cage tier is declared
 #      (`gitops/apps/namespace.yaml`, `posture.acme.io/tier: isolated`). This manifest carries no
 #      tier label of its own: under 5.0.0 the tier is declared on the Namespace and `cage-tier`

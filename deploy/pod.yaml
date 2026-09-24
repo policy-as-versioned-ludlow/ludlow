@@ -9,11 +9,11 @@
 #
 # REPINNED 2026-09-24 (Phase B, owner-instructed): policy 4.0.0 retires from
 # platform, and ludlow accepted 5.0.0 on 2026-09-23
-# (accepted-majors/platform-5.0.0.yaml). The composed array still holds both
-# 4.0.0 and 5.0.0 while the retirement lands, so this claim is caged either
-# way. It meets 5.0.0's require-nonroot on its first branch: runAsNonRoot on
-# the pod and readOnlyRootFilesystem on every container. It needs no
-# root-attestation.
+# (accepted-majors/platform-5.0.0.yaml). Platform v4.0.0 retired it, and
+# the composed array now holds 5.0.0 only (gitops/composed/composed-set.yaml,
+# tag v3.0.0), so this claim is caged by the one version installed. It meets
+# 5.0.0's require-nonroot on its first branch: runAsNonRoot on the pod and
+# readOnlyRootFilesystem on every container. It needs no root-attestation.
 #
 # It carries no posture.acme.io/tier label on purpose. Under 5.0.0 the tier is
 # declared on the governed Namespace and the cage writes the pod label as an
