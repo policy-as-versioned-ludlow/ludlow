@@ -22,18 +22,20 @@ org: ludlow
 pins_read_from: party.yaml
 
 signals:
-  - pin: { party: platform, kind: implementations, version: '3.3.0' }
+  - pin: { party: platform, kind: implementations, version: '4.0.0' }
     signal:
-      id: platform-implementations-3.3.0-is-the-pinned-release
+      id: platform-implementations-4.0.0-is-the-pinned-release
       at: '2026-09-24'
       scenario: eol-date-passes-2026
       what: >-
-        This institution's cage policy line comes from platform 3.3.0. The end-of-life date for
+        This institution's cage policy line comes from platform 4.0.0. The end-of-life date for
         that release is the publisher's to publish; this row is what binds it to the standing
         question about a pinned dependency passing one. The pin moved off 2.0.1 on 2026-09-24
         (pull request 33), and that move added policy 5.0.0, a major accepted for ludlow in
-        accepted-majors/platform-5.0.0.yaml. `at` is that re-derivation date, not the
-        subscription's `since`, which still records when ludlow first pinned platform at all.
+        accepted-majors/platform-5.0.0.yaml. It moved from 3.3.0 to 4.0.0 on 2026-09-24, and
+        that move retired policy 4.0.0 on the owner's instruction, so 5.0.0 is the only line
+        served. `at` is that re-derivation date, not the subscription's `since`, which still
+        records when ludlow first pinned platform at all.
 
   - pin: { party: nist, kind: controls, version: '1.1.0' }
     signal:
