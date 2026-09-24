@@ -1,21 +1,26 @@
-# A real ludlow workload manifest, pinned to policy-version 4.0.0 --
+# A real ludlow workload manifest, pinned to policy-version 5.0.0 --
 # platform/shift-left/ci-check.py's target resource (see
 # .github/workflows/shift-left.yml).
 #
 # REPINNED 2026-08-29: the whole 2.x/3.x fan-out is retired from
 # distribution/versions.yaml (unable to admit a pod, and reading the tier from
-# the pod's own label -- see that file for both reasons in full), so 4.0.0 is
-# the only version the array declares and the only one the orphan guard allows.
-# The old "compliant with both 1.0.0 and 2.0.0, so it passes the whole target
-# +/-1 supported window" claim went with it: the declared array holds one major
-# line today, so there is no neighbour to be compliant with.
+# the pod's own label -- see that file for both reasons in full), so 4.0.0
+# became the only version the array declared and the pod moved to it.
 #
-# It carries no posture.acme.io/tier label on purpose. Under 4.0.0 the tier is
+# REPINNED 2026-09-24 (Phase B, owner-instructed): policy 4.0.0 retires from
+# platform, and ludlow accepted 5.0.0 on 2026-09-23
+# (accepted-majors/platform-5.0.0.yaml). The composed array still holds both
+# 4.0.0 and 5.0.0 while the retirement lands, so this claim is caged either
+# way. It meets 5.0.0's require-nonroot on its first branch: runAsNonRoot on
+# the pod and readOnlyRootFilesystem on every container. It needs no
+# root-attestation.
+#
+# It carries no posture.acme.io/tier label on purpose. Under 5.0.0 the tier is
 # declared on the governed Namespace and the cage writes the pod label as an
 # OUTPUT (ADR-0022); a tier declared here would be clobbered.
 apiVersion: v1
 kind: Pod
-metadata: { name: patient-records-svc, labels: { "policy-as-versioned.dev/policy-version": "4.0.0" } }
+metadata: { name: patient-records-svc, labels: { "policy-as-versioned.dev/policy-version": "5.0.0" } }
 spec:
   securityContext: { runAsNonRoot: true }
   containers: [{ name: c, image: nginx, securityContext: { readOnlyRootFilesystem: true } }]
