@@ -27,6 +27,13 @@
       "name": "threat-register",
       "version": "v1",
       "sha": "50a0b330a730f4f9ee9520561b0c05c8be4c9268"
+    },
+    {
+      "party": "feeds",
+      "kind": "feed",
+      "name": "eol",
+      "version": "v2",
+      "sha": "ddace466f0cc410f228aeff3b4c5704eeea15a30"
     }
   ],
   "members": [
@@ -2921,14 +2928,14 @@
         "since": "2026-09-10"
       },
       "since": "2026-09-10",
-      "as_of": "2026-08-28",
+      "as_of": "2026-09-08",
       "ramp": 1.0,
       "base": 9039791.01976426,
       "proposed_tier": null,
       "changed": false,
       "basis": "the pinned line's own amount x (eol_ramp(since, as_of) - 1): the surcharge the feeds module's EOL ramp puts on a version its publisher has superseded, +1x per year behind and capped at +4x, where `since` is the day the newer major's signing tag was cut; zero on that day, printed with both dates, and never summed into the exposure the line itself is already in",
       "limits": [
-        "zero (as_of 2026-08-28 precedes the tag day 2026-09-10): the signed artefact's as-of is its newest signed input; only a re-composition --as-of a later day (the scheduled proposer's) grows this line",
+        "zero (as_of 2026-09-08 precedes the tag day 2026-09-10): the signed artefact's as-of is its newest signed input; only a re-composition --as-of a later day (the scheduled proposer's) grows this line",
         "the pinned checkout carries no directory for v4.0.0, so the newer major's content is unread here: this line is priced from the signed tags alone, and no retirement to v4 is proposed until the ico pin reaches a commit that carries it"
       ],
       "detail": "tag v4.0.0, signed 2026-09-10, publishes penalty-schema v4 ahead of the pinned v3; behind since 2026-09-10, the day v4.0.0 was cut; this checkout carries no directory for v4.0.0, so the line is priced from the signed tags alone"
@@ -2974,7 +2981,7 @@
       "kind": "supersede",
       "perspective": "ludlow",
       "currency": "GBP",
-      "amount": 0.0,
+      "amount": 6103.036849575519,
       "per_customer": null,
       "name": "threat-register",
       "version": "v1",
@@ -2987,16 +2994,61 @@
         "since": "2026-09-01"
       },
       "since": "2026-09-01",
-      "as_of": "2026-08-28",
-      "ramp": 1.0,
+      "as_of": "2026-09-08",
+      "ramp": 1.0191780821917809,
       "base": 318229.7785850087,
       "proposed_tier": null,
       "changed": false,
       "basis": "the pinned line's own amount x (eol_ramp(since, as_of) - 1): the surcharge the feeds module's EOL ramp puts on a version its publisher has superseded, +1x per year behind and capped at +4x, where `since` is the day the newer major's signing tag was cut; zero on that day, printed with both dates, and never summed into the exposure the line itself is already in",
-      "limits": [
-        "zero (as_of 2026-08-28 precedes the tag day 2026-09-01): the signed artefact's as-of is its newest signed input; only a re-composition --as-of a later day (the scheduled proposer's) grows this line"
-      ],
+      "limits": [],
       "detail": "tag threat-register/v2.0.0, signed 2026-09-01, publishes threat-register v2 ahead of the pinned v1; behind since 2026-09-01, the day threat-register/v2.0.0 was cut; threat-register/v3.0.0 signed ahead of it but unreadable here (this checkout carries no directory for it)"
+    },
+    {
+      "source": "feeds",
+      "kind": "feed",
+      "perspective": "ludlow",
+      "currency": "GBP",
+      "amount": 772556.5869891699,
+      "per_customer": null,
+      "name": "eol",
+      "old_version": "v2",
+      "new_version": "v2",
+      "old_price": 772556.5869891699,
+      "new_price": 772556.5869891699,
+      "old_tier": "isolated",
+      "proposed_tier": "isolated",
+      "changed": false,
+      "lef": [
+        7.095890410958904,
+        17.73972602739726,
+        35.47945205479452
+      ],
+      "lef_basis": "eol_date=2024-02-21, as_of=2026-09-08, ramp=3.55x. Source: endoflife.date/istio. headline entry istio-1.18 of 4 (largest mode-product entry, mode lef x mode lm -- an ordinal proxy, not fair.py's PERT expectation; ticket 75 Q4); not priced by this line: kyverno-1.10, ubuntu-20.04, python-3.9.",
+      "proposed_as": "label",
+      "holes": [],
+      "total": null,
+      "pin_signature": {
+        "state": "untagged",
+        "tag": null,
+        "detail": "no signed tag eol/v2.x.y (or v2.x.y) exists on the feeds parent's checkout, which carries 3 tag(s) of its own"
+      },
+      "hole": {
+        "kind": "untagged-pin",
+        "source": "feeds",
+        "name": "eol",
+        "version": "v2",
+        "perspective": "ludlow",
+        "currency": "GBP",
+        "status": "new",
+        "amount": 772556.5869891699,
+        "priced_by": "feeds eol@v2: the exposure the pin prices, read off a feed no signed tag carries",
+        "detail": "no signed tag eol/v2.x.y (or v2.x.y) exists on the feeds parent's checkout, which carries 3 tag(s) of its own"
+      },
+      "publisher_observation_scope": "Publisher tags were observed when this artefact was composed; the recorded observation is replayed offline and during verification. It does not establish the publisher's current newest major. A fresh composition with the publisher present refreshes it.",
+      "superseded": {
+        "state": "unpublished",
+        "detail": "the pinned v2 of eol carries no signed tag of its own (see pin_signature), and nothing signed is ahead of it either; it is a hole, not a current pin"
+      }
     },
     {
       "source": "ico",
@@ -3008,9 +3060,9 @@
       "name": "penalty-schema",
       "version": "v3",
       "since": "2026-08-28",
-      "as_of": "2026-08-28",
-      "pin_life_months": 0,
-      "over_pin_life": 0.0,
+      "as_of": "2026-09-08",
+      "pin_life_months": 1,
+      "over_pin_life": 753315.9183136882,
       "could_not_look": null,
       "alternates": [],
       "unpriceable": [
@@ -3042,12 +3094,60 @@
       "kind": "switching",
       "perspective": "ludlow",
       "currency": "GBP",
-      "amount": 318229.7785850093,
+      "amount": 1090786.3655741792,
       "per_customer": null,
       "name": "threat-register",
       "version": "v1",
       "since": "2026-08-28",
-      "as_of": "2026-08-28",
+      "as_of": "2026-09-08",
+      "pin_life_months": 1,
+      "over_pin_life": 90898.86379784827,
+      "could_not_look": null,
+      "alternates": [],
+      "unpriceable": [
+        {
+          "kind": "feed",
+          "source": "feeds",
+          "name": "threat-register",
+          "perspective": "ludlow",
+          "currency": "GBP",
+          "amount": 318229.7785850087
+        },
+        {
+          "kind": "supersede",
+          "source": "feeds",
+          "name": "threat-register",
+          "perspective": "ludlow",
+          "currency": "GBP",
+          "amount": 6103.036849575519
+        },
+        {
+          "kind": "feed",
+          "source": "feeds",
+          "name": "eol",
+          "perspective": "ludlow",
+          "currency": "GBP",
+          "amount": 772556.5869891699
+        }
+      ],
+      "sized": false,
+      "basis": "re-composed with this publisher's feed edges dropped",
+      "dropped_edges": [
+        "feeds/feed:threat-register@v1",
+        "feeds/feed:eol@v2"
+      ]
+    },
+    {
+      "source": "feeds",
+      "kind": "switching",
+      "perspective": "ludlow",
+      "currency": "GBP",
+      "amount": 1090786.3655741792,
+      "per_customer": null,
+      "name": "eol",
+      "version": "v2",
+      "since": "2026-09-08",
+      "as_of": "2026-09-08",
       "pin_life_months": 0,
       "over_pin_life": 0.0,
       "could_not_look": null,
@@ -3067,17 +3167,38 @@
           "name": "threat-register",
           "perspective": "ludlow",
           "currency": "GBP",
-          "amount": 0.0
+          "amount": 6103.036849575519
+        },
+        {
+          "kind": "feed",
+          "source": "feeds",
+          "name": "eol",
+          "perspective": "ludlow",
+          "currency": "GBP",
+          "amount": 772556.5869891699
         }
       ],
       "sized": false,
       "basis": "re-composed with this publisher's feed edges dropped",
       "dropped_edges": [
-        "feeds/feed:threat-register@v1"
+        "feeds/feed:threat-register@v1",
+        "feeds/feed:eol@v2"
       ]
     }
   ],
-  "deltas": [],
+  "deltas": [
+    {
+      "kind": "new-untagged-pin",
+      "source": "feeds",
+      "name": "eol",
+      "version": "v2",
+      "perspective": "ludlow",
+      "currency": "GBP",
+      "amount": 772556.5869891699,
+      "priced_by": "feeds eol@v2: the exposure the pin prices, read off a feed no signed tag carries",
+      "detail": "ludlow pins feeds/eol@v2 and no signed tag eol/v2.x.y (or v2.x.y) exists on the feeds parent's checkout, which carries 3 tag(s) of its own; 772556.59 GBP of exposure is booked against an unsigned feed"
+    }
+  ],
   "floor_change": {
     "schema": 1,
     "before": {
@@ -3116,6 +3237,19 @@
         "before_residual": null,
         "after_residual": 6364.59557170018,
         "residual_delta": null
+      },
+      {
+        "source": "feeds",
+        "kind": "feed",
+        "name": "eol",
+        "perspective": "ludlow",
+        "currency": "GBP",
+        "uncaged_amount": 772556.5869891699,
+        "before_tier": null,
+        "after_tier": "isolated",
+        "before_residual": null,
+        "after_residual": 15451.131739783412,
+        "residual_delta": null
       }
     ],
     "could_not_look": "previous floor was not recorded; absence of history is not an absent floor",
@@ -3139,7 +3273,7 @@
       "name": "publisher-clone-absent",
       "detail": "every priced feed was read from its publisher's own pinned tree",
       "count": 0,
-      "checked": 2,
+      "checked": 3,
       "status": "closed"
     }
   ],
@@ -3241,6 +3375,48 @@
         }
       },
       "path": "composed/feeds/feeds/v1"
+    },
+    {
+      "party": "feeds",
+      "kind": "feed",
+      "name": "eol",
+      "version": "v2",
+      "sha": "ddace466f0cc410f228aeff3b4c5704eeea15a30",
+      "feed_path": "eol/v2/feed.json",
+      "party_artefact": "party.yaml",
+      "converter": "eol/to_fair_scenario.py",
+      "converter_from": "platform",
+      "invocation": [
+        "eol",
+        "--as-of",
+        "2026-09-08"
+      ],
+      "scenario_sha256": "b7e9f1bfaddeff3bcbe437cb39e71deeaabc11c821c13df25dabe057f8a40ded",
+      "payload_version_key": "feed_version",
+      "published_at": "2026-07-31",
+      "files": {
+        "eol/to_fair_scenario.py": "10e2f5b412b09a16ff8bff2e1fe108938c79b25ac20b95b4047b4e17631bcbe7",
+        "eol/v2/feed.json": "2254a8d78b909dfe19c342e0b22c20eeb083c3669074f0a7b3e577dc1c9c6bc3",
+        "party.yaml": "204f41b1138803ed5a43f7a7f910627d428d9f3ead7232c48b926da62f427e48"
+      },
+      "publisher_observation": {
+        "schema": 1,
+        "party": "feeds",
+        "name": "eol",
+        "version": "v2",
+        "sha": "ddace466f0cc410f228aeff3b4c5704eeea15a30",
+        "pin_signature": {
+          "state": "untagged",
+          "tag": null,
+          "detail": "no signed tag eol/v2.x.y (or v2.x.y) exists on the feeds parent's checkout, which carries 3 tag(s) of its own"
+        },
+        "newer": null,
+        "superseded": {
+          "state": "current",
+          "detail": "no signed tag of the form eol/vN.x.y with N > 2 on the feeds checkout, so the pinned v2 is the newest published major"
+        }
+      },
+      "path": "composed/feeds/feeds/v2"
     }
   ]
 }

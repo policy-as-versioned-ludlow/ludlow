@@ -36,6 +36,19 @@
       "before_residual": null,
       "after_residual": 6364.59557170018,
       "residual_delta": null
+    },
+    {
+      "source": "feeds",
+      "kind": "feed",
+      "name": "eol",
+      "perspective": "ludlow",
+      "currency": "GBP",
+      "uncaged_amount": 772556.5869891699,
+      "before_tier": null,
+      "after_tier": "isolated",
+      "before_residual": null,
+      "after_residual": 15451.131739783412,
+      "residual_delta": null
     }
   ],
   "could_not_look": "previous floor was not recorded; absence of history is not an absent floor",
