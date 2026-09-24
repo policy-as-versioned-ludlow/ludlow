@@ -1,13 +1,13 @@
 apiVersion: policies.kyverno.io/v1alpha1
 kind: MutatingPolicy
 metadata:
-  name: governed-namespace-requires-claim
+  name: policy-version-orphan-cage
   labels:
     policy-as-versioned.dev/policy: platform-machinery
     policy-as-versioned.dev/composed-for: ludlow
   annotations:
     policy-as-versioned.dev/inherited-from: platform@3.3.0
-    policy-as-versioned.dev/source-path: distribution/versions.yaml (static, ADR-0014)
+    policy-as-versioned.dev/source-path: distribution/versions.yaml (rendered from the array, ticket 89)
 spec:
   matchConstraints:
     resourceRules:
@@ -19,12 +19,9 @@ spec:
       - CREATE
       resources:
       - pods
-    namespaceSelector:
-      matchLabels:
-        policy-as-versioned.dev/governed: 'true'
   matchConditions:
-  - name: claims-no-policy-version
-    expression: object.metadata.?labels['policy-as-versioned.dev/policy-version'].orValue('') == ''
+  - name: claims-an-undeclared-version
+    expression: object.metadata.?labels['policy-as-versioned.dev/policy-version'].orValue('') != '' && !(['4.0.0', '5.0.0'].exists(v, v == object.metadata.labels['policy-as-versioned.dev/policy-version']))
   variables:
   - name: tier
     expression: '''isolated'''
