@@ -20,12 +20,13 @@
 #
 # What is different here, and deliberately so:
 #
-#   * the source is DRIFTWOOD's own repository at DRIFTWOOD's own signed tag. ludlow does not
+#   * the source is ludlow's own repository at ludlow's own signed tag. ludlow does not
 #     install platform's tree; it installs the artefact its own composition rendered from
 #     platform's and nist's signed parents (composed/HEADER.yaml records those parent SHAs, and
 #     fact 3 of the sample checks the live platform and nist pins against them).
-#   * the tag is v2.0.0, not the v1.0.0 in gitops/flux-system/gotk-sync.yaml. v1.0.0 predates
-#     composed/ and does not carry the tree this reconciles. A self-pin bump is a reviewed PR that
+#   * the tag is v3.0.0, not the v1.0.0 in gitops/flux-system/gotk-sync.yaml. v1.0.0 predates
+#     composed/ and does not carry the tree this reconciles. v3.0.0 is the first tag composed
+#     under platform v4.0.0, which retired policy 4.0.0. A self-pin bump is a reviewed PR that
 #     moves tag and commit together (renovate.json's customManagers track nist and platform, not
 #     the self-pin).
 #   * there is no `spec.verify` here. Flux's GitRepository.spec.verify speaks OpenPGP, and one
@@ -66,17 +67,17 @@ metadata:
     # verified with somebody else's identity is observed false rather than merely 'verified'.
     policy-as-versioned.dev/gitsign-identity-regexp: ^https://github\.com/policy-as-versioned-ludlow/ludlow/\.github/workflows/cut-release\.yml@refs/heads/(main|release/[0-9]+\.[0-9]+\.x)$
     policy-as-versioned.dev/gitsign-issuer: https://token.actions.githubusercontent.com
-    policy-as-versioned.dev/gitsign-gates: flux-system/composed-v4-0-0,flux-system/composed-v5-0-0,flux-system/composed-machinery
+    policy-as-versioned.dev/gitsign-gates: flux-system/composed-v5-0-0,flux-system/composed-machinery
   labels:
     policy-as-versioned.dev/composed-for: ludlow
 spec:
   interval: 1m
   url: https://github.com/policy-as-versioned-ludlow/ludlow
   ref:
-    tag: v2.0.0
-    commit: ab89691912d40f376b5f0c87b0dcf41294423491
-    # The resolved SHA ludlow's own v2.0.0 tag points to (`git ls-remote origin 'refs/tags/v2.0.0^{}'`,
-    # 2026-09-24, eco-system ticket 130). Belt-and-braces immutability, ADR-0001.
+    tag: v3.0.0
+    commit: 45b3fbd21d2838f8882dfa6265b3a6e8fa61b3a9
+    # The resolved SHA ludlow's own v3.0.0 tag points to (`git ls-remote origin 'refs/tags/v3.0.0^{}'`,
+    # 2026-09-24). Belt-and-braces immutability, ADR-0001.
 ---
 apiVersion: fluxcd.controlplane.io/v1
 kind: ResourceSet
@@ -93,12 +94,10 @@ spec:
         # render offline, and `render_composed.py reach` refuses it unless it equals the version
         # directories the pinned tag carries and every machinery allow-list at that tag. Move it
         # in the same pull request that moves the tag.
-        - { version: "4.0.0" }
         - { version: "5.0.0" }
-        # v2.0.0 carries composed/policies/v4.0.0 and v5.0.0, and every machinery allow-list at
-        # that tag admits both. Every workload ludlow declares claims 4.0.0, so 5.0.0 alone would
-        # leave them caged by nothing (eco-system ticket 130). Drop 4.0.0 only after the workloads
-        # move to 5.0.0 and platform retires 4.0.0.
+        # v3.0.0 carries composed/policies/v5.0.0 only. It was composed under platform v4.0.0,
+        # which retired policy 4.0.0 (owner-instructed 2026-09-24), so 4.0.0 left this array in
+        # the same pull request that moved the tag. The workloads ludlow declares claim 5.0.0.
   resourcesTemplate: |
     << range $v := (index (inputs) "versions") >>
     ---
