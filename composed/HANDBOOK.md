@@ -67,7 +67,7 @@ Source: `composed/HEADER.yaml` → `governed-namespaces`, `ungoverned-namespaces
 - Governed namespaces (1): `ludlow`
 - Ungoverned namespaces (0): none
 - The tier was chosen by selection-policy version **1.1.0**.
-- Tier(s) the pricing proposes (1): `isolated`
+- Tier(s) the pricing proposes (2): `baseline`, `isolated`
 - `cages[]` entries: 0
 
 ## 4. What this costs, and to whom
@@ -81,11 +81,12 @@ Source: `composed/evidence.json` → `prices[]`, and `composed/HEADER.yaml` → 
 | feeds | feed | threat-register | ludlow | GBP | GBP 318,229.78 | no | isolated |
 | feeds | feed | cve | ludlow | GBP | could not look (section 6) | no | absent |
 | feeds | feed | eol | ludlow | GBP | GBP 787,227.83 | no | isolated |
-| platform | agent-cage | twin-agent | ludlow | GBP | could not look (section 6) | no | absent |
+| twin | twin | forward-intel | ludlow | GBP | GBP 13,435,900.93 | no | isolated |
+| platform | agent-cage | twin-agent | ludlow | GBP | GBP 2.98 | no | baseline |
 | ico | switching | penalty-schema | ludlow | GBP | GBP 3,071,757,723.56 | no | — |
-| feeds | switching | threat-register | ludlow | GBP | GBP 1,105,457.61 | no | — |
-| feeds | switching | cve | ludlow | GBP | GBP 1,105,457.61 | no | — |
-| feeds | switching | eol | ludlow | GBP | GBP 1,105,457.61 | no | — |
+| feeds | switching | threat-register | ludlow | GBP | could not look (section 6) | no | — |
+| feeds | switching | cve | ludlow | GBP | could not look (section 6) | no | — |
+| feeds | switching | eol | ludlow | GBP | could not look (section 6) | no | — |
 
 - **ico/penalty-schema** — Publisher tags were observed when this artefact was composed; the recorded observation is replayed offline and during verification. It does not establish the publisher's current newest major. A fresh composition with the publisher present refreshes it.
 - **ico/penalty-schema** — basis: lm sourced from ICO (Information Commissioner's Office) real public fines (UK GDPR / Data Protection Act 2018 s157). warn/deny lef are editorial (schema doesn't carry frequency). Scaled to a subscriber turnover of 147,814,767,711.53 GBP.
@@ -97,29 +98,34 @@ Source: `composed/evidence.json` → `prices[]`, and `composed/HEADER.yaml` → 
 - **feeds/cve** — basis: No scanned CVE is in the pinned KEV feed; 109 scanned CVE(s) outside it are named absences carrying no amount.
 - **feeds/eol** — Publisher tags were observed when this artefact was composed; the recorded observation is replayed offline and during verification. It does not establish the publisher's current newest major. A fresh composition with the publisher present refreshes it.
 - **feeds/eol** — basis: eol_date=2024-02-21, as_of=2026-10-03, ramp=3.62x. Source: endoflife.date/istio. headline entry istio-1.18 of 4 (largest mode-product entry, mode lef x mode lm -- an ordinal proxy, not fair.py's PERT expectation; ticket 75 Q4); not priced by this line: kyverno-1.10, ubuntu-20.04, python-3.9.
-- **platform/twin-agent** (`agent-cage`, subject `twin-agent`) — the twin agent's cage could not be priced; section 6 names why. With no rung on this line, the twin-sweep writer job reads none and falls closed to `isolated` (ADR-0022, eco-system ticket 143).
+- **twin/forward-intel** — basis: confidential health-record exfiltration (HIPAA, decades-confidential, HNDL/harvest-now-decrypt-later exposure). Frequency basis (editorial, read 2026-09-09): Annual loss-event frequency for this institution's headline threat. DBIR healthcare-sector base rate, editorial midpoint -- lower frequency, far higher confidentiality horizon COULD NOT LOOK: the DBIR publishes sector breach-frequency ranges, not a rate for one named institution, and no run of this estate has counted events for these three. Editorial midpoints, labelled as such. Magnitude basis (editorial, read 2026-09-09): Impact per confidential health-record exfiltration event: decades-confidential data with a harvest-now-decrypt-later horizon, the highest per-event band in this register. COULD NOT LOOK: no run of this estate has counted per-event losses for any institution in this register, and none of the three publishes one. These are the publisher's editorial bands, moved here from platform/feeds/to_fair_scenario.py's THREAT_LM_GBP unchanged so that the move itself moves no price. What would close it: a per-sector per-event loss figure with a published source and a date, or an institution's own signed incident cost.
+- **twin/forward-intel** — rests on evidence grade 3, the weakest grade behind the twin's price (its propagation path, its valuation and the path that admits it to the cash flow; ADR-0032)
+- **platform/twin-agent** — basis: Frequency basis (published, read 2026-09-26): Annual frequency with which a marketplace action this institution's scheduled twin sweep runs by floating tag is compromised at that tag, taken as the frequency the sweep's write credential is misused. N x C / M with N = 1 (actions/checkout@v4, the one distinct marketplace action the served twin-sweep.yml references, read at ludlow origin/main b8e14f7 on 2026-09-26); C = 2 for the min and the mode (the marketplace actions CISA's alert of 2025-03-18 names as compromised in 2025: tj-actions/changed-files, CVE-2025-30066, used in over 23,000 repositories per StepSecurity's 2025-03-14 report, and reviewdog/action-setup, CVE-2025-30154) and 7 for the max (those two plus the five downstream reviewdog actions Wiz named on 2025-03-17 as compromised through action-setup: action-shellcheck, action-composite-template, action-staticcheck, action-ast-grep, action-typos); M = 23,757 marketplace actions counted over four months by Chaiwut and Nikiforakis (IEEE SecDev 2025). 8.42e-05 to 0.000295 events a year. Grade 3 on the estate's evidence ladder: published work, not observed here. COULD NOT LOOK: No publisher counts credential MISUSE after a compromise, so this rate counts every published compromise of a floating-tag marketplace action as a misuse of the sweep's token: an upper bound for that door, and the only door with a published count. Not in the rate: the hub checkout at `main` and `pip install pyyaml`, dependencies the served sweep runs unpinned today (eco-system ticket 143 pins both by hash, and hash-pinning closes the floating-tag door this rate counts); a maintainer's own compromised account pushing a workflow (GhostAction, GitGuardian, 2025-09-05: 327 users, 817 repositories, 3,325 secrets), which is a human credential, not the scheduled agent's; and a pwn request on the repository's own workflow (the Nx s1ngularity entry point, 2025-08-26). The count is one year's (2025): no second year is counted, so the min and mode are the two actions with a CVE and the max the seven Wiz names. No run of this estate has observed a misuse. What would close it: an institution's own dated incident record (grade 2), or a published per-repository annual rate of CI credential misuse.
+- **platform/twin-agent** (`agent-cage`, subject `twin-agent`) — a rung for the twin agent, not the Namespace: `baseline`, picked by selection-policy version 1.1.0 over residuals derived from `platform-twin-agent-table@1.0.0` (baseline GBP 2.98, restricted GBP 2.98, quarantine GBP 2.98, isolated GBP 0.00). Loss magnitude: the gap between this party's residual at `baseline` and at `isolated` on its own twin line (GBP 9,136,412.63 a year) over the gate's detection window of 1.0 day(s) (the hub's .github/workflows/truth.yml `schedule: cron: '47 5 * * *'` (once a day), read 2026-09-26 at policy-as-versioned-flux/policy-as-versioned-flux origin/main 9c3b1f22). Frequency: threat-register@v4. Run cost GBP 0.00 at every rung, outside the selection. The rung is what the twin-sweep writer job reads (eco-system ticket 143 item 4).
 - **ico/penalty-schema** (switching) — basis: re-composed with this publisher's feed edges dropped
 - **feeds/threat-register** (switching) — basis: re-composed with this publisher's feed edges dropped
 - **feeds/cve** (switching) — basis: re-composed with this publisher's feed edges dropped
 - **feeds/eol** (switching) — basis: re-composed with this publisher's feed edges dropped
 
 - **ico/penalty-schema** carries 4 priced hole(s) inside that amount: `nist/pl-2` GBP 921,527,317.07, `nist/ra-3` GBP 921,527,317.07, `nist/ca-2` GBP 614,351,544.71, `nist/ir-8` GBP 614,351,544.71
-- **feeds/eol** is itself a priced hole: untagged-pin `feeds/eol@v2` — no signed tag eol/v2.x.y (or v2.x.y) exists on the feeds parent's checkout, which carries 6 tag(s) of its own, priced at the whole entry (GBP 787,227.83).
+- **feeds/eol** is itself a priced hole: untagged-pin `feeds/eol@v2` — no signed tag eol/v2.x.y (or v2.x.y) exists on the feeds parent's checkout, which carries 7 tag(s) of its own, priced at the whole entry (GBP 787,227.83).
 
 **Exposure** — booked under perspective `ludlow` in `GBP`.
 
   - Every figure under this section is derived from published feeds through published converters, and is reproducible from the signed inputs named beside it -- that is what AUDITABLE means here. What it is NOT: the loss-event frequencies and several loss magnitudes it rests on are editorial bands carrying a named could-not-look rather than counted rates (ico penalty-schema major 4, feeds threat-register major 3), so the total is usable for COMPARING one version, one pin or one control set against another under this one perspective, and not as a number to reserve against. Totals under two different perspectives are two balance sheets and are never added (ADR-0021). Ticket 75 Q4 (a), eco-system ticket 79 item 10.
-- Aggregate of the selected-tier residuals: GBP 61,457,263.62 against a tolerance of GBP 5,000.00 -- NO VERDICT -- 1 of 4 priced line(s) carry no selected tier and are therefore not in this total (cve), so the total is a PARTIAL sum and no verdict can be given against the declared aggregate: a partial sum reads 'within the band' however large the excluded lines are.
+- Aggregate of the selected-tier residuals: GBP 61,725,981.64 against a tolerance of GBP 5,000.00 -- NO VERDICT -- 1 of 5 priced line(s) carry no selected tier and are therefore not in this total (cve), so the total is a PARTIAL sum and no verdict can be given against the declared aggregate: a partial sum reads 'within the band' however large the excluded lines are.
   - `penalty-schema` at tier `isolated`: GBP 61,435,154.47
   - `threat-register` at tier `isolated`: GBP 6,364.60
   - `eol` at tier `isolated`: GBP 15,744.56
+  - `forward-intel` at tier `isolated`: GBP 268,718.02
   - Not in this total, because they carry no selected tier: cve
 - Attachment: GBP 5,000.00
-- Regimes (4):
+- Regimes (5):
   - `uk-gdpr` from ico feed `penalty-schema` v3: GBP 3,071,757,723.56, 4 control(s) named
   - `threat-register` from feeds feed `threat-register` v4: GBP 318,229.78, 0 control(s) named
   - `cve` from feeds feed `cve` v3: unpriced (section 6), 0 control(s) named
   - `eol` from feeds feed `eol` v2: GBP 787,227.83, 0 control(s) named
+  - `forward-intel` from twin feed `forward-intel` 1.0.0: GBP 13,435,900.93, 0 control(s) named
 
 ### Floor comparison
 
@@ -133,6 +139,7 @@ Could not look: previous floor was not recorded; absence of history is not an ab
 - feeds/threat-register: unknown → isolated; retained residual unknown → GBP 6,364.60; delta unknown.
 - feeds/cve: unknown → unknown; retained residual unknown → unknown; delta unknown.
 - feeds/eol: unknown → isolated; retained residual unknown → GBP 15,744.56; delta unknown.
+- twin/forward-intel: unknown → isolated; retained residual unknown → GBP 268,718.02; delta unknown.
 
 Instrument: `platform-cage-tiers@1.0.0`. selection evidence, not an enacted Namespace tier; platform reductions are self-declared calibration, not measured effectiveness.
 
@@ -142,11 +149,11 @@ Source: `composed/HEADER.yaml` → `baseline`, `selected-controls`, `holes`; `co
 
 - Baseline: **MODERATE**
 - Controls selected: 287
-- Controls with no implementation behind them (`holes[]`): 285 — closed: 1, recorded: 284
-- So 2 of 287 selected controls have an implementation in this artefact. A hole is priced, never refused (ADR-0020).
+- Controls with no implementation behind them (`holes[]`): 284 — recorded: 284
+- So 3 of 287 selected controls have an implementation in this artefact. A hole is priced, never refused (ADR-0020).
 - `refusals[]`: 0
 - `restatements[]`: 0
-- `deltas[]`: 1
+- `deltas[]`: 0
 - `ungoverned[]`: 0
 
 ## 6. What this handbook cannot say
@@ -179,9 +186,9 @@ One recorded limit is deliberately not stated above: `publisher-clone-absent` re
 - `spec of cage-restricted-7-0-0` (in `composed/policies/v7.0.0/cage-restricted.yaml`) — this object declares no mutation, validation or generation this page can read
 - `prices[3].amount` (in `composed/evidence.json`) — feeds/cve could not be priced: No scanned CVE is in the pinned KEV feed; 109 scanned CVE(s) outside it are named absences carrying no amount.
 - `prices[3].proposed_tier` (in `composed/evidence.json`) — feeds/cve is a `feed` entry that proposes no tier
-- `prices[5].amount` (in `composed/evidence.json`) — platform/twin-agent could not be priced: missing instrument: ludlow composes no `source: twin` line, so there is no residual at the loosest and at the selected pod rung to take the loss magnitude from (ticket 30 decision 12; the line arrives with eco-system ticket 144)
-- `prices[5].proposed_tier` (in `composed/evidence.json`) — platform/twin-agent is a `agent-cage` entry that proposes no tier
-- `prices[5].lef_basis` (in `composed/evidence.json`) — no loss frequency was read for platform/twin-agent: the line could not be priced, and its `could_not_look` above says why
+- `prices[8].amount` (in `composed/evidence.json`) — feeds/threat-register could not be priced: missing instrument: twin/forward-intel/v1/feed.json supplies no lef and its derived_from names 0 subscribed feeds that price one (none); a borrowed frequency has to be named, not guessed at
+- `prices[9].amount` (in `composed/evidence.json`) — feeds/cve could not be priced: missing instrument: twin/forward-intel/v1/feed.json supplies no lef and its derived_from names 0 subscribed feeds that price one (none); a borrowed frequency has to be named, not guessed at
+- `prices[10].amount` (in `composed/evidence.json`) — feeds/eol could not be priced: missing instrument: twin/forward-intel/v1/feed.json supplies no lef and its derived_from names 0 subscribed feeds that price one (none); a borrowed frequency has to be named, not guessed at
 - `exposure.total` (in `composed/HEADER.yaml`) — no total is stated
 - `exposure.regimes[2].amount` (in `composed/HEADER.yaml`) — cve from feeds feed cve is unpriced; no monetary amount is stated
 
@@ -189,4 +196,4 @@ Two things this page can never tell you, by construction, and neither is a field
 
 ---
 
-Counted from the artefact: 6 publisher(s), 34 installed object(s), 34 recorded member(s), 10 price(s), 287 selected control(s), 285 hole(s), 2 recorded limit(s), 20 named absence(s).
+Counted from the artefact: 6 publisher(s), 34 installed object(s), 34 recorded member(s), 11 price(s), 287 selected control(s), 284 hole(s), 2 recorded limit(s), 20 named absence(s).

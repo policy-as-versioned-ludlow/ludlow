@@ -128,10 +128,21 @@ jobs:
           fi
           echo "ok  twin code is policy-as-versioned-flux@${head}, the commit twin/PIN.yaml names"
 
-      - name: verify the signed twin tag when the pin declares it cut
+      - name: install the hash-pinned read-only signature verifier
         env:
           GITSIGN_VERSION: 0.17.1
           GITSIGN_SHA256: 69213a8a0813a151e5a47d0060862952ff833a845d57309dff76f7ba6600abae
+        run: |
+          set -euo pipefail
+          archive="${RUNNER_TEMP}/gitsign-twin"
+          curl --fail --location --retry 3 "https://github.com/sigstore/gitsign/releases/download/v${GITSIGN_VERSION}/gitsign_${GITSIGN_VERSION}_linux_amd64" -o "${archive}"
+          echo "${GITSIGN_SHA256}  ${archive}" | sha256sum --check --strict
+          mkdir -p "${RUNNER_TEMP}/twin-verifier-bin"
+          install -m 755 "${archive}" "${RUNNER_TEMP}/twin-verifier-bin/gitsign"
+          rm "${archive}"
+          echo "${RUNNER_TEMP}/twin-verifier-bin" >> "$GITHUB_PATH"
+
+      - name: verify the signed twin tag when the pin declares it cut
         run: |
           set -euo pipefail
           if ! grep -Eq '^tag_cut:[[:space:]]*true[[:space:]]*$' twin/PIN.yaml; then
@@ -140,14 +151,10 @@ jobs:
           fi
           tag="$(sed -n 's/^twin_tag:[[:space:]]*\(twin\/v[0-9][^[:space:]]*\)[[:space:]]*$/\1/p' twin/PIN.yaml)"
           test -n "${tag}" || { echo "::error::tag_cut requires twin_tag"; exit 1; }
-          archive="${RUNNER_TEMP}/gitsign-twin"
-          curl --fail --location --retry 3 "https://github.com/sigstore/gitsign/releases/download/v${GITSIGN_VERSION}/gitsign_${GITSIGN_VERSION}_linux_amd64" -o "${archive}"
-          echo "${GITSIGN_SHA256}  ${archive}" | sha256sum --check --strict
-          chmod +x "${archive}"
           hub="${GITHUB_WORKSPACE}/hub"
           pinned="$(sed -n 's/^hub_commit:[[:space:]]*//p' twin/PIN.yaml)"
           test "$(git -C "${hub}" rev-parse "${tag}^{commit}")" = "${pinned}" || { echo "::error::signed twin tag and hub commit disagree"; exit 1; }
-          (cd "${hub}" && "${archive}" verify-tag "${tag}" \
+          (cd "${hub}" && gitsign verify-tag "${tag}" \
             --certificate-identity-regexp='^https://github\.com/policy-as-versioned-flux/policy-as-versioned-flux/\.github/workflows/cut-release\.yml@refs/heads/(main|release/[0-9]+\.[0-9]+\.x)$' \
             --certificate-oidc-issuer='https://token.actions.githubusercontent.com')
 
@@ -155,6 +162,37 @@ jobs:
         run: |
           set -euo pipefail
           pip install --quiet --require-hashes -r .github/requirements/twin-sweep.txt
+
+      - name: read the dated FX tag and commit declared by this adopter
+        id: fx
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/read-pins.py gitops/flux-system/gotk-sync-fx.yaml fx >> "$GITHUB_OUTPUT"
+
+      - name: checkout the dated FX instrument at its declared commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          repository: policy-as-versioned-feeds/feeds
+          path: hub/.estate-clone/feeds
+          ref: ${{ steps.fx.outputs.fx_commit }}
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+
+      - name: verify the exact dated FX tag and its publisher identity
+        env:
+          FX_TAG: ${{ steps.fx.outputs.fx_tag }}
+          FX_COMMIT: ${{ steps.fx.outputs.fx_commit }}
+        run: |
+          set -euo pipefail
+          [[ "${FX_TAG}" =~ ^fx/v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::FX must name a release tag"; exit 1; }
+          [[ "${FX_COMMIT}" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::FX must name a full commit"; exit 1; }
+          feeds="${GITHUB_WORKSPACE}/hub/.estate-clone/feeds"
+          test "$(git -C "${feeds}" rev-parse HEAD)" = "${FX_COMMIT}" || { echo "::error::FX checkout and pin disagree"; exit 1; }
+          test "$(git -C "${feeds}" rev-parse "${FX_TAG}^{commit}")" = "${FX_COMMIT}" || { echo "::error::FX signed tag and commit disagree"; exit 1; }
+          (cd "${feeds}" && gitsign verify-tag "${FX_TAG}" \
+            --certificate-identity-regexp='^https://github\.com/policy-as-versioned-feeds/feeds/\.github/workflows/cut-release\.yml@refs/heads/(main|release/[0-9]+\.[0-9]+\.x)$' \
+            --certificate-oidc-issuer='https://token.actions.githubusercontent.com')
 
       - name: Verify the observation and containment instrument
         run: |

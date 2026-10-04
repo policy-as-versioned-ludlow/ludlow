@@ -2910,15 +2910,6 @@
       "currency": "GBP",
       "amount": null,
       "priced_by": null
-    },
-    {
-      "source": "nist",
-      "control_id": "ac-4",
-      "status": "closed",
-      "perspective": "ludlow",
-      "currency": "GBP",
-      "amount": null,
-      "priced_by": null
     }
   ],
   "ungoverned": [],
@@ -3035,7 +3026,7 @@
         "currency": "GBP"
       },
       "name": "threat-register",
-      "old_version": "v1",
+      "old_version": "v4",
       "new_version": "v4",
       "old_price": 318229.7785850087,
       "new_price": 318229.7785850087,
@@ -3679,7 +3670,7 @@
       "pin_signature": {
         "state": "untagged",
         "tag": null,
-        "detail": "no signed tag eol/v2.x.y (or v2.x.y) exists on the feeds parent's checkout, which carries 6 tag(s) of its own"
+        "detail": "no signed tag eol/v2.x.y (or v2.x.y) exists on the feeds parent's checkout, which carries 7 tag(s) of its own"
       },
       "hole": {
         "kind": "untagged-pin",
@@ -3691,7 +3682,7 @@
         "status": "recorded",
         "amount": 787227.8274739302,
         "priced_by": "feeds eol@v2: the exposure the pin prices, read off a feed no signed tag carries",
-        "detail": "no signed tag eol/v2.x.y (or v2.x.y) exists on the feeds parent's checkout, which carries 6 tag(s) of its own"
+        "detail": "no signed tag eol/v2.x.y (or v2.x.y) exists on the feeds parent's checkout, which carries 7 tag(s) of its own"
       },
       "publisher_observation_scope": "Publisher tags were observed when this artefact was composed; the recorded observation is replayed offline and during verification. It does not establish the publisher's current newest major. A fresh composition with the publisher present refreshes it.",
       "superseded": {
@@ -3700,17 +3691,53 @@
       }
     },
     {
+      "source": "twin",
+      "kind": "twin",
+      "perspective": "ludlow",
+      "currency": "GBP",
+      "amount": 13435900.928034885,
+      "per_customer": {
+        "amount": 0.29704414856815714,
+        "currency": "GBP"
+      },
+      "name": "forward-intel",
+      "feed_version": "1.0.0",
+      "tail": "bounded-pert",
+      "policy_version": "1.1.0",
+      "policy_basis": "no priced tier is under the tolerance (5000.00 GBP), so the selection fails closed",
+      "residual_basis": "platform-cage-tiers@1.0.0",
+      "residuals": {
+        "baseline": 9405130.649624418,
+        "restricted": 4030770.278410466,
+        "quarantine": 1074872.0742427902,
+        "isolated": 268718.01856069796
+      },
+      "curve_hash": "sha256:a190720b68ce9edc6b5b835429d187ec012af213559eb6c699b062efcbe528f6",
+      "shock": "An exfiltration of the member record store suppresses plan administration fees over the following year.\nTHE TRIPLE IS AN ANCHOR, NOT A MEASUREMENT, and it is graded 3 for exactly that reason. This institution has no incident of its own to measure, so the three numbers are arithmetic on the most thoroughly litigated plan-administrator breach on the public record, nested from the narrowest settled track to the widest:\n\n  min  0.00019 =  16,000,000 / 84,194,000,000   (the regulator's own settlement alone)\n  mode 0.00076 =  64,200,000 / 84,194,000,000   (regulator + the multistate settlement)\n  max  0.00213 = 179,200,000 / 84,194,000,000   (both, plus the class-action settlement)\n\n16,000,000 USD is the federal civil-rights regulator (HHS OCR) settlement with Anthem, Inc.; 48,200,000 USD the multistate attorneys-general settlement; 115,000,000 USD the class-action settlement, all on the same 2015 breach of the records of 78.8 million individuals, the regulated record category this plan holds. 84,194,000,000 USD is total operating revenue for the fiscal year ended 2016-12-31 in that company's own SEC Form 10-K. Sources are recorded in the hub's .scratch/ecosystem/research/94-studied-firms.md. Numerator and denominator are USD from the same record, so the ratio is dimensionless and carries no FX claim -- which matters, because this party reports in GBP.\nWhat it is NOT: a settlement is not a suppression of administration fees, and that company is not this one. Grade 3 on the published ladder is \"an established mechanism from published work, not observed here\", which is precisely the claim being made. The institution's party artefact declares pricing_threshold: 3, so this unchanged grade is admissible at that declared threshold. Pricing the native USD cash flow in GBP still requires the matching signed FX instrument for the filing date; a missing rate refuses without converting this anchor into an observation. A grade-1 or grade-2 replacement would require this institution's own dated incident record, and a regrade event must record who moved it and why (twin/evidence.py).",
+      "horizon": 1,
+      "lef": [
+        1.0,
+        2.0,
+        5.0
+      ],
+      "lef_basis": "confidential health-record exfiltration (HIPAA, decades-confidential, HNDL/harvest-now-decrypt-later exposure). Frequency basis (editorial, read 2026-09-09): Annual loss-event frequency for this institution's headline threat. DBIR healthcare-sector base rate, editorial midpoint -- lower frequency, far higher confidentiality horizon COULD NOT LOOK: the DBIR publishes sector breach-frequency ranges, not a rate for one named institution, and no run of this estate has counted events for these three. Editorial midpoints, labelled as such. Magnitude basis (editorial, read 2026-09-09): Impact per confidential health-record exfiltration event: decades-confidential data with a harvest-now-decrypt-later horizon, the highest per-event band in this register. COULD NOT LOOK: no run of this estate has counted per-event losses for any institution in this register, and none of the three publishes one. These are the publisher's editorial bands, moved here from platform/feeds/to_fair_scenario.py's THREAT_LM_GBP unchanged so that the move itself moves no price. What would close it: a per-sector per-event loss figure with a published source and a date, or an institution's own signed incident cost.",
+      "lef_from": "threat-register",
+      "rests_on_grade": 3,
+      "old_tier": "isolated",
+      "proposed_tier": "isolated",
+      "changed": false,
+      "proposed_as": "label"
+    },
+    {
       "source": "platform",
       "kind": "agent-cage",
       "perspective": "ludlow",
       "currency": "GBP",
-      "amount": null,
-      "per_customer": null,
-      "could_not_look": "missing instrument: ludlow composes no `source: twin` line, so there is no residual at the loosest and at the selected pod rung to take the loss magnitude from (ticket 30 decision 12; the line arrives with eco-system ticket 144)",
-      "proposed_tier": null,
-      "old_tier": null,
-      "changed": false,
-      "old_amount": null,
+      "amount": 2.9832690625309497,
+      "per_customer": {
+        "amount": 6.59548342441402e-08,
+        "currency": "GBP"
+      },
       "subject": "twin-agent",
       "name": "twin-agent",
       "residual_basis": "platform-twin-agent-table@1.0.0",
@@ -3729,7 +3756,89 @@
           "the loss runs until detection, not until repair: a red gate is acted on the day it is read",
           "one day is the schedule's whole interval, the upper bound on the wait for the next run; the mean wait is half of it"
         ]
-      }
+      },
+      "proposed_tier": "baseline",
+      "old_tier": "baseline",
+      "changed": false,
+      "old_amount": 2.9832690625309497,
+      "residuals": {
+        "baseline": 2.9832690625309497,
+        "restricted": 2.9832690625309497,
+        "quarantine": 2.9832690625309497,
+        "isolated": 0.0
+      },
+      "closes": {
+        "baseline": [],
+        "restricted": [
+          "model-step-writes-a-wrong-binding-or-forecast"
+        ],
+        "quarantine": [
+          "misleading-proposal-merged-by-a-human",
+          "model-step-writes-a-wrong-binding-or-forecast"
+        ],
+        "isolated": [
+          "misleading-proposal-merged-by-a-human",
+          "model-step-writes-a-wrong-binding-or-forecast",
+          "writer-merges-or-tags-through-rest",
+          "writer-pushes-a-looser-declaration"
+        ]
+      },
+      "reach": {
+        "writer-pushes-a-looser-declaration": 1.0,
+        "writer-merges-or-tags-through-rest": 1.0,
+        "misleading-proposal-merged-by-a-human": 0.0,
+        "model-step-writes-a-wrong-binding-or-forecast": 0.0
+      },
+      "reach_basis": {
+        "writer-pushes-a-looser-declaration": ".github/workflows/twin-sweep.yml is scheduled (29 7 * * *) and its job(s) write run with contents: write on the repository that serves the governed Namespace, so a looser declaration the token pushes to main is served whole: the whole gap, until the hub gate reads the push (verify/schedules/lane.py grades a push to main by a scheduled identity as a FAIL, eco-system ticket 142a)",
+        "writer-merges-or-tags-through-rest": "the same contents: write token on .github/workflows/twin-sweep.yml (write) can merge a pull request through REST, landing the same looser declaration by another door, the whole gap; a REST tag signs only this party's own artefacts and moves no price under this perspective; the union of the two is the whole gap, until the hub gate reads the merge (lane.py grades a merge made by a scheduled identity as a FAIL, ticket 142a)",
+        "misleading-proposal-merged-by-a-human": "shift-left.yml job compose-check runs shift-left/tier_binding.py on every pull request, which refuses a declaration looser than the strictest priced line clamped to the floor, and shift-left.yml job compose-check recomposes the party artefact on every pull request and exits non-zero on drift against the committed composed/ tree (a compose invocation, a drift test on composed/ and a non-zero exit after it, read off the step's own run block), which refuses a hand-edited rung on this line; so a proposal a human merges through the gate serves none of the gap. A merge over a red gate is the human's act, not the twin agent's (ADR-0031 decision 1)",
+        "model-step-writes-a-wrong-binding-or-forecast": "no priced line rests on a grade above 3 (party/schema.json admits appetite.pricing_threshold 2 or 3 only, and a model's claim is grade 5, which never prices), so a wrong binding or forecast a model step writes reaches no figure this composition prices"
+      },
+      "scenario": {
+        "gap": 9136412.63106372,
+        "gap_currency": "GBP",
+        "loosest_pod_tier": "baseline",
+        "selected_pod_tier": "isolated",
+        "gap_from": "the `source: twin` line's residuals (platform-cage-tiers@1.0.0): baseline 9405130.649624418 minus isolated 268718.01856069796",
+        "window_days": 1.0,
+        "window_source": "the hub's .github/workflows/truth.yml `schedule: cron: '47 5 * * *'` (once a day), read 2026-09-26 at policy-as-versioned-flux/policy-as-versioned-flux origin/main 9c3b1f22",
+        "window_detects": "a push to main or a merge made by a scheduled identity (verify/schedules/lane.py, eco-system ticket 142a) and a served declaration looser than the strictest priced line (verify/tier-binding)",
+        "window_assumes": [
+          "the truth run fires once a day as scheduled; the delay GitHub adds to a cron run (measured at up to ~5h on the estate's first firings) is not in the figure",
+          "the loss runs until detection, not until repair: a red gate is acted on the day it is read",
+          "one day is the schedule's whole interval, the upper bound on the wait for the next run; the mean wait is half of it"
+        ],
+        "lm": [
+          25014.13451352148,
+          25014.13451352148,
+          25014.13451352148
+        ],
+        "lm_basis": "the gap (9136412.63106372 GBP a year) times the window (1.0 day(s) of 365.25), a point magnitude: the loss of serving the loosest rung instead of the selected one for the window, per event",
+        "annualised_by": "expectation",
+        "annualised_basis": "E[events a year] x E[loss per event] over the PERT means (fair.expected_ale); fair.simulate at 10000 iterations rounds each year's event count to an integer and resolved 0.0000 of its years with an event (simulated ALE 0.0000), so the simulated mean is the engine's resolution, not the scenario's",
+        "simulated_ale": 0.0,
+        "simulated_p_gt_0": 0.0
+      },
+      "lef": [
+        8.4186e-05,
+        8.4186e-05,
+        0.00029465
+      ],
+      "lef_basis": "Frequency basis (published, read 2026-09-26): Annual frequency with which a marketplace action this institution's scheduled twin sweep runs by floating tag is compromised at that tag, taken as the frequency the sweep's write credential is misused. N x C / M with N = 1 (actions/checkout@v4, the one distinct marketplace action the served twin-sweep.yml references, read at ludlow origin/main b8e14f7 on 2026-09-26); C = 2 for the min and the mode (the marketplace actions CISA's alert of 2025-03-18 names as compromised in 2025: tj-actions/changed-files, CVE-2025-30066, used in over 23,000 repositories per StepSecurity's 2025-03-14 report, and reviewdog/action-setup, CVE-2025-30154) and 7 for the max (those two plus the five downstream reviewdog actions Wiz named on 2025-03-17 as compromised through action-setup: action-shellcheck, action-composite-template, action-staticcheck, action-ast-grep, action-typos); M = 23,757 marketplace actions counted over four months by Chaiwut and Nikiforakis (IEEE SecDev 2025). 8.42e-05 to 0.000295 events a year. Grade 3 on the estate's evidence ladder: published work, not observed here. COULD NOT LOOK: No publisher counts credential MISUSE after a compromise, so this rate counts every published compromise of a floating-tag marketplace action as a misuse of the sweep's token: an upper bound for that door, and the only door with a published count. Not in the rate: the hub checkout at `main` and `pip install pyyaml`, dependencies the served sweep runs unpinned today (eco-system ticket 143 pins both by hash, and hash-pinning closes the floating-tag door this rate counts); a maintainer's own compromised account pushing a workflow (GhostAction, GitGuardian, 2025-09-05: 327 users, 817 repositories, 3,325 secrets), which is a human credential, not the scheduled agent's; and a pwn request on the repository's own workflow (the Nx s1ngularity entry point, 2025-08-26). The count is one year's (2025): no second year is counted, so the min and mode are the two actions with a CVE and the max the seven Wiz names. No run of this estate has observed a misuse. What would close it: an institution's own dated incident record (grade 2), or a published per-repository annual rate of CI credential misuse.",
+      "lef_from": "threat-register",
+      "register_version": "v4",
+      "tail": "bounded-pert",
+      "policy_version": "1.1.0",
+      "policy_basis": "loosest tier whose caged residual (2.98 GBP) is within the tolerance (5000.00 GBP)",
+      "tcor": {
+        "tier": "baseline",
+        "residual": 2.9832690625309497,
+        "cost_of_controls": 0.0,
+        "tcor": 2.9832690625309497
+      },
+      "rests_on_grade": 3,
+      "rests_on_grade_basis": "the register row is published (grade 3 at best: published work, not observed here) and the twin line rests on grade 3; the weaker of the two"
     },
     {
       "source": "ico",
@@ -3778,20 +3887,33 @@
       "kind": "switching",
       "perspective": "ludlow",
       "currency": "GBP",
-      "amount": 1105457.6060590744,
-      "per_customer": {
-        "amount": 0.024439724223095913,
-        "currency": "GBP"
-      },
+      "amount": null,
+      "per_customer": null,
       "name": "threat-register",
       "version": "v4",
       "since": "2026-08-28",
       "as_of": "2026-10-03",
       "pin_life_months": 2,
-      "over_pin_life": 184242.93434317908,
-      "could_not_look": null,
+      "over_pin_life": null,
+      "could_not_look": "missing instrument: twin/forward-intel/v1/feed.json supplies no lef and its derived_from names 0 subscribed feeds that price one (none); a borrowed frequency has to be named, not guessed at",
       "alternates": [],
       "unpriceable": [
+        {
+          "kind": "feed",
+          "source": "ico",
+          "name": "penalty-schema",
+          "perspective": "ludlow",
+          "currency": "GBP",
+          "amount": 3071757723.556848
+        },
+        {
+          "kind": "supersede",
+          "source": "ico",
+          "name": "penalty-schema",
+          "perspective": "ludlow",
+          "currency": "GBP",
+          "amount": 193562815.45700708
+        },
         {
           "kind": "feed",
           "source": "feeds",
@@ -3815,6 +3937,22 @@
           "perspective": "ludlow",
           "currency": "GBP",
           "amount": 787227.8274739302
+        },
+        {
+          "kind": "twin",
+          "source": "twin",
+          "name": "forward-intel",
+          "perspective": "ludlow",
+          "currency": "GBP",
+          "amount": 13435900.928034885
+        },
+        {
+          "kind": "agent-cage",
+          "source": "platform",
+          "name": "twin-agent",
+          "perspective": "ludlow",
+          "currency": "GBP",
+          "amount": 2.9832690625309497
         }
       ],
       "sized": true,
@@ -3830,20 +3968,33 @@
       "kind": "switching",
       "perspective": "ludlow",
       "currency": "GBP",
-      "amount": 1105457.6060590744,
-      "per_customer": {
-        "amount": 0.024439724223095913,
-        "currency": "GBP"
-      },
+      "amount": null,
+      "per_customer": null,
       "name": "cve",
       "version": "v3",
       "since": "2026-10-03",
       "as_of": "2026-10-03",
       "pin_life_months": 0,
-      "over_pin_life": 0.0,
-      "could_not_look": null,
+      "over_pin_life": null,
+      "could_not_look": "missing instrument: twin/forward-intel/v1/feed.json supplies no lef and its derived_from names 0 subscribed feeds that price one (none); a borrowed frequency has to be named, not guessed at",
       "alternates": [],
       "unpriceable": [
+        {
+          "kind": "feed",
+          "source": "ico",
+          "name": "penalty-schema",
+          "perspective": "ludlow",
+          "currency": "GBP",
+          "amount": 3071757723.556848
+        },
+        {
+          "kind": "supersede",
+          "source": "ico",
+          "name": "penalty-schema",
+          "perspective": "ludlow",
+          "currency": "GBP",
+          "amount": 193562815.45700708
+        },
         {
           "kind": "feed",
           "source": "feeds",
@@ -3867,6 +4018,22 @@
           "perspective": "ludlow",
           "currency": "GBP",
           "amount": 787227.8274739302
+        },
+        {
+          "kind": "twin",
+          "source": "twin",
+          "name": "forward-intel",
+          "perspective": "ludlow",
+          "currency": "GBP",
+          "amount": 13435900.928034885
+        },
+        {
+          "kind": "agent-cage",
+          "source": "platform",
+          "name": "twin-agent",
+          "perspective": "ludlow",
+          "currency": "GBP",
+          "amount": 2.9832690625309497
         }
       ],
       "sized": true,
@@ -3882,20 +4049,33 @@
       "kind": "switching",
       "perspective": "ludlow",
       "currency": "GBP",
-      "amount": 1105457.6060590744,
-      "per_customer": {
-        "amount": 0.024439724223095913,
-        "currency": "GBP"
-      },
+      "amount": null,
+      "per_customer": null,
       "name": "eol",
       "version": "v2",
       "since": "2026-09-08",
       "as_of": "2026-10-03",
       "pin_life_months": 1,
-      "over_pin_life": 92121.46717158954,
-      "could_not_look": null,
+      "over_pin_life": null,
+      "could_not_look": "missing instrument: twin/forward-intel/v1/feed.json supplies no lef and its derived_from names 0 subscribed feeds that price one (none); a borrowed frequency has to be named, not guessed at",
       "alternates": [],
       "unpriceable": [
+        {
+          "kind": "feed",
+          "source": "ico",
+          "name": "penalty-schema",
+          "perspective": "ludlow",
+          "currency": "GBP",
+          "amount": 3071757723.556848
+        },
+        {
+          "kind": "supersede",
+          "source": "ico",
+          "name": "penalty-schema",
+          "perspective": "ludlow",
+          "currency": "GBP",
+          "amount": 193562815.45700708
+        },
         {
           "kind": "feed",
           "source": "feeds",
@@ -3919,6 +4099,22 @@
           "perspective": "ludlow",
           "currency": "GBP",
           "amount": 787227.8274739302
+        },
+        {
+          "kind": "twin",
+          "source": "twin",
+          "name": "forward-intel",
+          "perspective": "ludlow",
+          "currency": "GBP",
+          "amount": 13435900.928034885
+        },
+        {
+          "kind": "agent-cage",
+          "source": "platform",
+          "name": "twin-agent",
+          "perspective": "ludlow",
+          "currency": "GBP",
+          "amount": 2.9832690625309497
         }
       ],
       "sized": true,
@@ -3930,18 +4126,7 @@
       ]
     }
   ],
-  "deltas": [
-    {
-      "kind": "closed-hole",
-      "source": "nist",
-      "control_id": "ac-4",
-      "perspective": "ludlow",
-      "currency": "GBP",
-      "amount": null,
-      "priced_by": null,
-      "detail": "nist:ac-4 was a recorded hole and a claim now covers it; no pinned instrument names a price for it"
-    }
-  ],
+  "deltas": [],
   "floor_change": {
     "schema": 1,
     "before": {
@@ -4005,6 +4190,19 @@
         "after_tier": "isolated",
         "before_residual": null,
         "after_residual": 15744.556549478619,
+        "residual_delta": null
+      },
+      {
+        "source": "twin",
+        "kind": "twin",
+        "name": "forward-intel",
+        "perspective": "ludlow",
+        "currency": "GBP",
+        "uncaged_amount": 13435900.928034885,
+        "before_tier": null,
+        "after_tier": "isolated",
+        "before_residual": null,
+        "after_residual": 268718.01856069796,
         "residual_delta": null
       }
     ],
@@ -4201,7 +4399,7 @@
         "pin_signature": {
           "state": "untagged",
           "tag": null,
-          "detail": "no signed tag eol/v2.x.y (or v2.x.y) exists on the feeds parent's checkout, which carries 6 tag(s) of its own"
+          "detail": "no signed tag eol/v2.x.y (or v2.x.y) exists on the feeds parent's checkout, which carries 7 tag(s) of its own"
         },
         "newer": null,
         "superseded": {

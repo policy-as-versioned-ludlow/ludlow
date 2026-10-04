@@ -23,7 +23,7 @@
     "newer": null,
     "party": "feeds",
     "pin_signature": {
-      "detail": "no signed tag eol/v2.x.y (or v2.x.y) exists on the feeds parent's checkout, which carries 6 tag(s) of its own",
+      "detail": "no signed tag eol/v2.x.y (or v2.x.y) exists on the feeds parent's checkout, which carries 7 tag(s) of its own",
       "state": "untagged",
       "tag": null
     },

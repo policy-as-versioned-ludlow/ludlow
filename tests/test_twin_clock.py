@@ -192,7 +192,7 @@ class TwinClock(unittest.TestCase):
         checkouts = [s for s in _steps(self.twin) if str(s.get('uses', '')).startswith('actions/checkout@')]
         hub = [s for s in checkouts if s.get('with', {}).get('repository') == HUB]
         own = [s for s in checkouts if 'repository' not in s.get('with', {})]
-        self.assertEqual((len(hub), len(own), len(checkouts)), (1, 1, 2))
+        self.assertEqual((len(hub), len(own), len(checkouts)), (1, 1, 3))
         self.assertEqual(hub[0]['with']['ref'], '${{ steps.pin.outputs.hub_commit }}')
         self.assertEqual(hub[0]['with']['fetch-depth'], 0)
         self.assertTrue(hub[0]['with']['fetch-tags'])
@@ -214,10 +214,38 @@ class TwinClock(unittest.TestCase):
         shell = '\n'.join(str(s.get('run', '')) for s in _steps(self.twin))
         self.assertNotIn('git push', shell)
         self.assertNotIn('gh pr', shell)
-        self.assertNotIn('gitsign', shell, 'the twin job signs nothing')
+        self.assertNotIn('gitsign -s', shell, 'the twin job signs nothing')
+        self.assertNotIn('commit.gpgsign', shell, 'the twin job enables no signing')
         upload = _step(self.twin, uses='actions/upload-artifact@')
         self.assertEqual(upload['with']['name'], 'twin-sweep-handoff')
         self.assertEqual(upload['with']['if-no-files-found'], 'error')
+
+    def test_foreign_currency_observer_has_its_exact_verified_read_dependency(self):
+        feeds = next(
+            s for s in _steps(self.twin)
+            if s.get('with', {}).get('repository') == 'policy-as-versioned-feeds/feeds')
+        self.assertEqual(feeds['with']['ref'], '${{ steps.fx.outputs.fx_commit }}')
+        self.assertEqual(feeds['with']['path'], 'hub/.estate-clone/feeds')
+        self.assertEqual(feeds['with']['fetch-depth'], 0)
+        self.assertTrue(feeds['with']['fetch-tags'])
+        self.assertIs(feeds['with']['persist-credentials'], False)
+        read = _step(self.twin, id='fx')
+        self.assertIn('gitops/flux-system/gotk-sync-fx.yaml fx', read['run'])
+        installer = _step(self.twin, run='twin-verifier-bin')
+        self.assertNotIn('tag_cut', installer['run'])
+        self.assertIn('sha256sum --check --strict', installer['run'])
+        pins = yaml.safe_load(GITSIGN_ACTION.read_text())['runs']['steps'][0]['env']
+        self.assertEqual(installer['env'], pins)
+        verifier = _step(self.twin, run='FX signed tag and commit disagree')
+        self.assertIn('rev-parse HEAD', verifier['run'])
+        self.assertIn('${FX_TAG}^{commit}', verifier['run'])
+        self.assertIn('gitsign verify-tag', verifier['run'])
+        self.assertIn('policy-as-versioned-feeds/feeds/', verifier['run'])
+        self.assertIn('--certificate-oidc-issuer=', verifier['run'])
+        for earlier in (installer, read, feeds, verifier):
+            self.assertLess(_steps(self.twin).index(earlier), _index(self.twin, id='observe'))
+        self.assertLess(_steps(self.twin).index(read), _steps(self.twin).index(feeds))
+        self.assertLess(_steps(self.twin).index(feeds), _steps(self.twin).index(verifier))
 
     def test_pin_step_reads_the_same_commit_yaml_reads_and_refuses_a_bad_pin(self):
         shell = _step(self.twin, id='pin')['run']

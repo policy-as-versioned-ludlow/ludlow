@@ -62,6 +62,19 @@
       "before_residual": null,
       "after_residual": 15744.556549478619,
       "residual_delta": null
+    },
+    {
+      "source": "twin",
+      "kind": "twin",
+      "name": "forward-intel",
+      "perspective": "ludlow",
+      "currency": "GBP",
+      "uncaged_amount": 13435900.928034885,
+      "before_tier": null,
+      "after_tier": "isolated",
+      "before_residual": null,
+      "after_residual": 268718.01856069796,
+      "residual_delta": null
     }
   ],
   "could_not_look": "previous floor was not recorded; absence of history is not an absent floor",

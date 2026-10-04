@@ -13,5 +13,5 @@ spec:
   interval: 5m
   url: https://github.com/policy-as-versioned-feeds/feeds
   ref:
-    tag: fx/v1.1.0
-    commit: 974e73514e0d8d4cad2e6906acf51d1cc27028b3
+    tag: fx/v2.0.0
+    commit: 8c84a66951ce89834f33e008380b2c47f054b7c0

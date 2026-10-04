@@ -624,14 +624,14 @@ ungoverned-namespaces: []
 withdrawn-selectable: false
 comparison-inputs:
   schema: 1
-  after: 3452a43d97131972c7b4c23eb7435a30da4abf879dadbab82316471c75f6876c
+  after: 82091bb199079d0ed9a4c1819df9940fba61870de22331e8f796f95e09db1a4f
   before:
     header:
       parents:
       - party: platform
         kind: implementations
-        version: 4.0.0
-        sha: 557c1538fe022c784ea4ffb345c92d2e4b11fe71
+        version: 5.0.0
+        sha: 703eff6aee959843c4160aa54fd03413f62858cc
       - party: nist
         kind: controls
         version: 1.1.0
@@ -644,13 +644,18 @@ comparison-inputs:
       - party: feeds
         kind: feed
         name: threat-register
-        version: v1
-        sha: 50a0b330a730f4f9ee9520561b0c05c8be4c9268
+        version: v4
+        sha: 37dfe4a2de50f1a1fd7aeb6348d819373188e0e6
+      - party: feeds
+        kind: feed
+        name: cve
+        version: v3
+        sha: 37dfe4a2de50f1a1fd7aeb6348d819373188e0e6
       - party: feeds
         kind: feed
         name: eol
         version: v2
-        sha: ddace466f0cc410f228aeff3b4c5704eeea15a30
+        sha: 330fbf06872c2ec2c8637863b624cd902d5534ca
       baseline: MODERATE
       holes:
       - ac-1
@@ -681,7 +686,6 @@ comparison-inputs:
       - ac-21
       - ac-22
       - ac-3
-      - ac-4
       - ac-5
       - ac-6.1
       - ac-6.10
@@ -1245,9 +1249,9 @@ comparison-inputs:
       name: threat-register
       proposed_tier: isolated
       hole: null
-    - kind: supersede
+    - kind: feed
       source: feeds
-      name: threat-register
+      name: cve
       proposed_tier: null
       hole: null
     - kind: feed
@@ -1256,6 +1260,11 @@ comparison-inputs:
       proposed_tier: isolated
       hole:
         status: recorded
+    - kind: agent-cage
+      source: platform
+      name: twin-agent
+      proposed_tier: null
+      hole: null
     - kind: switching
       source: ico
       name: penalty-schema
@@ -1264,6 +1273,11 @@ comparison-inputs:
     - kind: switching
       source: feeds
       name: threat-register
+      proposed_tier: null
+      hole: null
+    - kind: switching
+      source: feeds
+      name: cve
       proposed_tier: null
       hole: null
     - kind: switching
@@ -1317,7 +1331,7 @@ exposure:
     amount: 5000.0
     currency: GBP
   total: null
-  priced_subtotal: 3072863181.162907
+  priced_subtotal: 3086299082.090942
   unpriced_lines:
   - cve
   ordinal: an ordinal, auditable comparison under one perspective; not an expected annual loss
@@ -1325,12 +1339,12 @@ exposure:
   aggregate:
     perspective: ludlow
     currency: GBP
-    selected_tier_residual_total: 61457263.623258196
+    selected_tier_residual_total: 61725981.641818896
     tolerance: 5000.0
     tolerance_currency: GBP
     tolerance_in_reporting_currency: null
     breaches_band: null
-    could_not_look: '1 of 4 priced line(s) carry no selected tier and are therefore not in this total (cve), so the total is a PARTIAL sum and no verdict can be given against the declared aggregate: a partial sum reads ''within the band'' however large the excluded lines are'
+    could_not_look: '1 of 5 priced line(s) carry no selected tier and are therefore not in this total (cve), so the total is a PARTIAL sum and no verdict can be given against the declared aggregate: a partial sum reads ''within the band'' however large the excluded lines are'
     lines:
     - name: penalty-schema
       tier: isolated
@@ -1341,9 +1355,12 @@ exposure:
     - name: eol
       tier: isolated
       residual: 15744.556549478619
+    - name: forward-intel
+      tier: isolated
+      residual: 268718.01856069796
     not_tiered:
     - cve
-    basis: 'The sum of what each priced line''s OWN selected tier leaves, through fair.sum_prices, against the ONE annual-aggregate quantity appetite.tolerance declares (ticket 75 Q4). The ladder picks a tier per line against that number, so lines that each fit can breach it together; this is where that shows. Not a refusal: there is no gate (ADR-0020), a breach is priced and shown. Lines carrying no selected tier and therefore not in this total: cve. NO VERDICT: 1 of 4 priced line(s) carry no selected tier and are therefore not in this total (cve), so the total is a PARTIAL sum and no verdict can be given against the declared aggregate: a partial sum reads ''within the band'' however large the excluded lines are.'
+    basis: 'The sum of what each priced line''s OWN selected tier leaves, through fair.sum_prices, against the ONE annual-aggregate quantity appetite.tolerance declares (ticket 75 Q4). The ladder picks a tier per line against that number, so lines that each fit can breach it together; this is where that shows. Not a refusal: there is no gate (ADR-0020), a breach is priced and shown. Lines carrying no selected tier and therefore not in this total: cve. NO VERDICT: 1 of 5 priced line(s) carry no selected tier and are therefore not in this total (cve), so the total is a PARTIAL sum and no verdict can be given against the declared aggregate: a partial sum reads ''within the band'' however large the excluded lines are.'
   regimes:
   - name: uk-gdpr
     source: ico
@@ -1380,4 +1397,10 @@ exposure:
     feed: eol
     version: v2
     amount: 787227.8274739302
+    controls: []
+  - name: forward-intel
+    source: twin
+    feed: forward-intel
+    version: 1.0.0
+    amount: 13435900.928034885
     controls: []
