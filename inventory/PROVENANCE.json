@@ -1,6 +1,6 @@
 {
   "apps_source": {
-    "commit": "5ff463673cf05af71a5db2ed0c38deaf263464d2",
+    "commit": "c5f33cc8982fc9bfeb7fcc2068ea8de0dda63dae",
     "path": "gitops/apps",
     "repository": "https://github.com/policy-as-versioned-ludlow/ludlow",
     "signature": {
@@ -9,11 +9,11 @@
       "identity": "https://github.com/policy-as-versioned-ludlow/ludlow/.github/workflows/cut-release.yml@refs/heads/main",
       "issuer": "https://token.actions.githubusercontent.com",
       "rekor": true,
-      "rekor_entry": "https://rekor.sigstore.dev/api/v1/log/entries?logIndex=3075511349",
-      "tlog_index": "3075511349"
+      "rekor_entry": "https://rekor.sigstore.dev/api/v1/log/entries?logIndex=3077567855",
+      "tlog_index": "3077567855"
     },
-    "tag": "v3.0.1",
-    "tag_object": "2cc62f42b297f1f7ed65babc381a6dad561f3240"
+    "tag": "v4.0.0",
+    "tag_object": "36a1d2634beb4a2321414b020a6527bc714a0aba"
   },
   "binding": "The complete exact tagged apps graph and primary reports reproduce images.json; no release or cluster activation is asserted.",
   "cached_database_unchanged": true,
