@@ -92,9 +92,10 @@ jobs:
         with:
           path: ludlow
           ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
 
       - name: fetch this PR's base commit too (ticket cs-28 needs the OLD platform pin, not just the new one)
-        run: git -C ludlow fetch --depth=1 origin ${{ github.event.pull_request.base.sha }}
+        run: git -C ludlow fetch origin ${{ github.event.pull_request.base.sha }}
 
       - name: read the platform tag THIS PR proposes (from the PR head's own platform-pin.yaml -- bug #1 fix)
         id: pin
@@ -186,6 +187,23 @@ jobs:
             [ -n "${manifest}" ] || continue
             python3 platform/shift-left/ci-check.py --resource "${manifest}"
           done < "${RUNNER_TEMP}/served.txt"
+
+      - name: the cage probe grades the served documents (eco-system ticket 161)
+        # The lane's facts 6 and 7 prove the cage on a cluster. This proves the DOCUMENTS the
+        # cluster reads, offline, with the CLI the step above installed: the sampler's own probe
+        # objects (drift/five-facts.py) run against composed/ at the tag
+        # gitops/composed/composed-set.yaml pins and at HEAD, through drift/cage_probe.py. It
+        # fails when the fall-closed pod is not on the ladder's bottom, when anything selects the
+        # reference pod, or when a PriorityClass a mutation names is not served. This job checks
+        # the repository out without tags, so the pinned tag is fetched first; a tag that is still
+        # missing is a could-not-look the script names (exit 3), and here that fails the job.
+        # It sits after the version cross-check gate, and not beside the CLI install step,
+        # so a change to how the CLI is installed (ticket 147) does not collide with it.
+        run: |
+          set -euo pipefail
+          tag="$(python3 -c 'import sys; sys.path.insert(0, "ludlow/scripts"); import render_composed as rc; print(rc.pinned_tag())')"
+          git -C ludlow fetch --quiet origin "refs/tags/${tag}:refs/tags/${tag}"
+          bash ludlow/verify-cage-probe.sh
 
       - name: install pinned cosign (binary + checksum, no marketplace action)
         env:
@@ -336,7 +354,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-        with: { path: ludlow }
+        with: { path: ludlow, fetch-depth: 0 }
 
       - name: Install pinned identity verifier
         uses: ./ludlow/.github/actions/install-gitsign
@@ -435,7 +453,7 @@ jobs:
         # delivered by exactly one Kustomization that ResourceSet generates, the array must be the
         # version directories that tag carries, and every machinery allow-list must be the array.
         # The ResourceSet is read from this pull request's head, composed/ from the tag, which is
-        # how the lane applies them. Tags are fetched because the checkout above is shallow.
+        # how the lane applies them. Refresh tags without truncating the complete checkout history.
         run: |
           set -euo pipefail
           git -C ludlow fetch --quiet --tags origin

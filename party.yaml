@@ -17,7 +17,15 @@ roles: [risk-bearer, adopter, publisher]
 reporting_currency: GBP
 # Copied from platform/risk/appetite.json orgs.ludlow.tolerance (near-zero:
 # the same control that Audits in driftwood Denies here).
+# Ticket 144: comparable filing fixed before any price is computed; accounts/members
+# are customer proxies; data_subjects was not disclosed and is omitted.
+size:
+  turnover: { amount: 197584000000, currency: USD }
+  customers: 45232000
+  headcount: 97100
+  as_of: '2025-12-31'
 appetite:
+  pricing_threshold: 3
   tolerance: { amount: 5000, currency: GBP }
 # MODERATE: 287 controls, holds ac-6, cm-6 and ac-6.10. LOW excludes ac-6,
 # one of the two controls this estate implements (ADR-0013). May add
@@ -25,10 +33,11 @@ appetite:
 # in gitops/apps/nist-pin-configmap.yaml's data.baselineName.
 baseline: MODERATE
 inherits:
-  - { party: platform, kind: implementations, version: "4.0.0", since: '2026-08-28' }
+  - { party: platform, kind: implementations, version: "5.0.0", since: '2026-08-28' }
   - { party: nist,     kind: controls,        version: "1.1.0", since: '2026-08-28' }
   - { party: ico,      kind: feed, name: penalty-schema,    version: "v3", since: '2026-08-28' }
-  - { party: feeds,    kind: feed, name: threat-register,   version: "v1", since: '2026-08-28' }
+  - { party: feeds,    kind: feed, name: threat-register,   version: "v4", since: '2026-08-28' }
+  - { party: feeds,    kind: feed, name: cve,               version: "v3", since: '2026-10-03' }
   # Eco-system ticket 84: the EOL feed the feeds publisher carries (eol/v2, the newest
   # directory it publishes). Priced through platform's converter as the feed's headline
   # component, ramped to the composition's own as-of date. The publisher has cut no
@@ -53,4 +62,11 @@ publishes:
     name: exposure
     path: composed
     payload_schema: null
+    revoked: []
+
+  # Ticket 144: the twin publishes its own forward scenario; tag pending owner cut.
+  - kind: feed
+    name: forward-intel
+    path: twin/forward-intel
+    payload_schema: twin/forward-intel/payload.schema.json
     revoked: []
