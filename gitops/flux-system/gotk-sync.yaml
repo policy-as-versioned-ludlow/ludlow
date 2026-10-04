@@ -18,10 +18,10 @@ spec:
   interval: 1m
   url: https://github.com/policy-as-versioned-ludlow/ludlow
   ref:
-    tag: v3.0.1
-    commit: 5ff463673cf05af71a5db2ed0c38deaf263464d2
+    tag: v4.0.0
+    commit: c5f33cc8982fc9bfeb7fcc2068ea8de0dda63dae
     # commit pinned at release (belt-and-braces immutability, ADR-0001) --
-    # the resolved SHA ludlow's own signed v3.0.1 apps release points to. Not covered by the
+    # the resolved SHA ludlow's own signed v4.0.0 apps release points to. Not covered by the
     # Renovate customManagers in renovate.json (those track nist and platform
     # only); a self-pin bump is a reviewed PR that moves both fields together.
 ---
