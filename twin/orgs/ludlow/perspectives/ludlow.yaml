@@ -1,38 +1,33 @@
 id: ludlow
 name: Ludlow Plan Administration, the employer's own seat
 party: employer
-pays: >-
-  This institution's own balance sheet. Suppressed administration fees, the incident response
-  bill, the regulator's settlement and the class action all land here, and this is the only seat
-  this overlay carries.
+pays: This institution's own balance sheet. Suppressed administration fees, the incident
+  response bill, the regulator's settlement and the class action all land here, and
+  this is the only seat this overlay carries.
 values:
   plan-administration-fees:
     evidence_grade: 3
-    basis: >-
-      NO AMOUNT, and the absence is the honest answer rather than an omission. party.yaml for this
-      institution publishes no `size:` block at all -- no turnover, no member count, no as_of date
-      -- so there is no signed party fact for a valuation to derive from, the way driftwood's
-      checkout-revenue derives from its signed size.turnover. The only revenue figures available
-      for an institution of this shape are a comparable firm's own SEC filing (Anthem, Inc.: total
-      operating revenue 84,194,000,000 USD for the fiscal year ended 2016-12-31, Form 10-K; see
-      the hub's .scratch/ecosystem/research/94-studied-firms.md). That is real, published and
-      dated, and it is somebody else's, in a currency this party does not report in, which is
-      grade 3 on the published ladder -- outside the pricing threshold of 2, so this valuation may
-      carry no figure. Signing a `size:` block is this party's own act and money is the owner's
-      decision (ADR-0025 point 6); until one exists, this seat is a register entry with no number,
-      and emit-forward-intel.py refuses rather than inventing one.
+    basis: Published comparable filing, grade 3, not observed here. ELV Form10-K2025
+      SEC0001156039-26-000013, service fees8475000000USD / operating revenue197584000000USD,
+      members45232000 and headcount97100 at2025-12-31. https://www.sec.gov/Archives/edgar/data/1156039/000115603926000013/elv-20251231.htm.
+      Native USD amount; GBP requires a signature-verified FX feed for the filing
+      date.
+    amount: 8475000000
+    derived_from_party_fact: size.turnover
+    share_of_turnover: 0.04289314924285367
+    periods_per_year: 1
   accreditation-standing:
     evidence_grade: 5
-    basis: >-
-      Asserted, not measured. No evidenced causal path runs from accreditation standing to
-      administration fees in this overlay, so it carries no amount and travels as a register entry
-      instead.
+    basis: Asserted, not measured. No evidenced causal path runs from accreditation
+      standing to administration fees in this overlay, so it carries no amount and
+      travels as a register entry instead.
 ruin:
-  cannot-adjudicate-claims: >-
-    Claims adjudication unable to run for a full business day. Ruin for this seat is not
-    insolvency but the loss of the function the plan is administered to perform, and members
-    waiting on benefit decisions are the ones who carry it.
-cash_flow: [plan-administration-fees]
-note: >-
-  The currency of these valuations is declared in ../../../currency.yaml until the twin's closed
-  `valuation` schema gains a currency field (ticket 11 answer item 2).
+  cannot-adjudicate-claims: Claims adjudication unable to run for a full business
+    day. Ruin for this seat is not insolvency but the loss of the function the plan
+    is administered to perform, and members waiting on benefit decisions are the ones
+    who carry it.
+cash_flow:
+- plan-administration-fees
+note: The currency of these valuations is declared in ../../../currency.yaml until
+  the twin's closed `valuation` schema gains a currency field (ticket 11 answer item
+  2).

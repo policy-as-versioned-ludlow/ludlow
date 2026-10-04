@@ -17,7 +17,7 @@
 # it in four ways, each of which is what a lift means:
 #
 #   1. RE-LABELLED. `mycompany.com/policy-version: "2.0.0"` becomes
-#      `policy-as-versioned.dev/policy-version: "5.0.0"`. The incumbent org's `department:
+#      `policy-as-versioned.dev/policy-version: "7.0.0"`. The incumbent org's `department:
 #      engineering` label goes with it: it was read by that org's `require-department-label`
 #      policy, which no version in ludlow's composed set carries.
 #   2. RE-PINNED to ludlow's own composed artefact. 5.0.0 is not a number chosen here -- it is
@@ -56,7 +56,7 @@ metadata:
   labels:
     app: reports
     app.kubernetes.io/part-of: ludlow
-    policy-as-versioned.dev/policy-version: "5.0.0"
+    policy-as-versioned.dev/policy-version: "7.0.0"
 spec:
   securityContext:
     runAsNonRoot: true

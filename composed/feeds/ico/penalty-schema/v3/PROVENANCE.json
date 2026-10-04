@@ -10,7 +10,9 @@
   "invocation": [
     "build",
     "uk-gdpr",
-    "lower-tier"
+    "lower-tier",
+    "--turnover",
+    "147814767711.53"
   ],
   "kind": "feed",
   "name": "penalty-schema",
@@ -43,7 +45,7 @@
     },
     "version": "v3"
   },
-  "scenario_sha256": "3382ab9371d2040558594909c6301f771b5c6f6c452e675fb5adbb42399aa1b4",
+  "scenario_sha256": "59151ada661a66e39df3c1fd793d073c18cb4b2aaeac9dc81f341b7a579ead86",
   "sha": "e1fb8eb5663e50088b13d872a4e44112476f516e",
   "version": "v3"
 }

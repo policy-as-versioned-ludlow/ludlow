@@ -22,21 +22,16 @@ org: ludlow
 pins_read_from: party.yaml
 
 signals:
-  - pin: { party: platform, kind: implementations, version: '4.0.0' }
+  - pin: { party: platform, kind: implementations, version: '5.0.0' }
     signal:
-      id: platform-implementations-4.0.0-is-the-pinned-release
-      at: '2026-09-24'
+      id: platform-implementations-5.0.0-is-the-pinned-release
+      at: '2026-10-04'
       scenario: eol-date-passes-2026
       what: >-
-        This institution's cage policy line comes from platform 4.0.0. The end-of-life date for
-        that release is the publisher's to publish; this row is what binds it to the standing
-        question about a pinned dependency passing one. The pin moved off 2.0.1 on 2026-09-24
-        (pull request 33), and that move added policy 5.0.0, a major accepted for ludlow in
-        accepted-majors/platform-5.0.0.yaml. It moved from 3.3.0 to 4.0.0 on 2026-09-24, and
-        that move retired policy 4.0.0 on the owner's instruction, so 5.0.0 is the only line
-        served. `at` is that re-derivation date, not the subscription's `since`. `since` is
-        2026-08-28, the day party.yaml first dated its edges (ticket 21). ludlow pinned platform
-        before that date, so `since` is not when it first pinned platform at all.
+        Platform repository v5.0.0 carries signed policy5,6 and7. This institution claims
+        the corrected compatible policy7 under its exact delegated acceptance, retaining
+        the older supported lines during this engine1.18.2 window. End-of-life remains the
+        publisher's dated declaration; this lookup supplies no retirement decision.
 
   - pin: { party: nist, kind: controls, version: '1.1.0' }
     signal:
@@ -58,10 +53,10 @@ signals:
         that regime is the dated signal; what it does to the value chain is the scenario, and the
         amount of the fine is the estate's, never the twin's.
 
-  - pin: { party: feeds, kind: feed, name: threat-register, version: v1 }
+  - pin: { party: feeds, kind: feed, name: threat-register, version: v4 }
     signal:
-      id: feeds-threat-register-v1-names-ludlow
-      at: '2026-08-28'
+      id: feeds-threat-register-v4-names-ludlow
+      at: '2026-10-04'
       scenario: rival-reads-my-holes-2026
       what: >-
         The threat register is a PUBLISHED document naming this institution's exposure, and the
@@ -80,6 +75,17 @@ signals:
         the subscription in party.yaml, the day this pin was first declared (ticket 84). The row
         was authored by hand because a new subscription is a binding, not a rewrite.
 
+  - pin: { party: feeds, kind: feed, name: cve, version: v3 }
+    signal:
+      id: feeds-cve-v3-is-the-sole-source-feed
+      at: '2026-10-04'
+      scenario: publisher-withdraws-2026
+      what: >-
+        The exact cve/v3.0.0 release is the sole feed source for the captured KEV facts
+        intersected with this institution's tagged workload inventory. Withdrawal of that
+        publisher is the existing standing question. This binding is an owner-delegated
+        declaration recorded on 2026-10-04; it supplies no probability or synthetic price.
+
 # Scenarios no subscribed feed version binds. Declared, so that "six scenarios and five rows" is
 # an observation rather than a hole somebody has to notice.
 unbound_scenarios:
@@ -92,10 +98,3 @@ unbound_scenarios:
       A tier-one clearing-house supplier failing to deliver arrives as a dated headline a human
       classifies with the classify-and-judge skill (ticket 50). Binding it to a pin here would be
       the twin deciding on the clock, which is the one thing this table exists to prevent.
-  - scenario: publisher-withdraws-2026
-    why: >-
-      Unbound here and bound in driftwood's copy, and the difference is a fact about the party
-      artefacts rather than a gap: driftwood pins insurer/feed:quote-driftwood and this party pins
-      no insurer feed at all. Every publisher this institution does pin already binds a different
-      standing question above, so there is no version whose withdrawal is THIS question's signal.
-      The day this party pins a feed whose sole source is one publisher, that pin gets a row here.
