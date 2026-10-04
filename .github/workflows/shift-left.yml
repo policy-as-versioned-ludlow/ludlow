@@ -92,9 +92,10 @@ jobs:
         with:
           path: ludlow
           ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
 
       - name: fetch this PR's base commit too (ticket cs-28 needs the OLD platform pin, not just the new one)
-        run: git -C ludlow fetch --depth=1 origin ${{ github.event.pull_request.base.sha }}
+        run: git -C ludlow fetch origin ${{ github.event.pull_request.base.sha }}
 
       - name: read the platform tag THIS PR proposes (from the PR head's own platform-pin.yaml -- bug #1 fix)
         id: pin
@@ -201,7 +202,7 @@ jobs:
         run: |
           set -euo pipefail
           tag="$(python3 -c 'import sys; sys.path.insert(0, "ludlow/scripts"); import render_composed as rc; print(rc.pinned_tag())')"
-          git -C ludlow fetch --quiet --depth=1 origin "refs/tags/${tag}:refs/tags/${tag}"
+          git -C ludlow fetch --quiet origin "refs/tags/${tag}:refs/tags/${tag}"
           bash ludlow/verify-cage-probe.sh
 
       - name: install pinned cosign (binary + checksum, no marketplace action)
@@ -353,7 +354,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-        with: { path: ludlow }
+        with: { path: ludlow, fetch-depth: 0 }
 
       - name: Install pinned identity verifier
         uses: ./ludlow/.github/actions/install-gitsign
@@ -452,7 +453,7 @@ jobs:
         # delivered by exactly one Kustomization that ResourceSet generates, the array must be the
         # version directories that tag carries, and every machinery allow-list must be the array.
         # The ResourceSet is read from this pull request's head, composed/ from the tag, which is
-        # how the lane applies them. Tags are fetched because the checkout above is shallow.
+        # how the lane applies them. Refresh tags without truncating the complete checkout history.
         run: |
           set -euo pipefail
           git -C ludlow fetch --quiet --tags origin
