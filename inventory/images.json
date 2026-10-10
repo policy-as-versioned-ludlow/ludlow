@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "database_date": "2026-10-03T07:01:46.027466673Z",
+      "database_date": "2026-10-10T12:33:35.352381306Z",
       "digest": "sha256:fa1b651ace9b00a636a4c0622fa9be63667fcdfe61a34e3ed8b618f07f0397e2",
       "image": "ghcr.io/policy-as-versioned-ludlow/reports:v1.0.1@sha256:fa1b651ace9b00a636a4c0622fa9be63667fcdfe61a34e3ed8b618f07f0397e2",
       "scanner_version": "0.69.3",
@@ -466,7 +466,7 @@
           "id": "CVE-2026-102473",
           "installed_version": "0.5.12-12",
           "package": "dash",
-          "severity": "MEDIUM"
+          "severity": "LOW"
         },
         {
           "fixed_version": "",
@@ -474,6 +474,13 @@
           "installed_version": "0.5.12-12",
           "package": "dash",
           "severity": "LOW"
+        },
+        {
+          "fixed_version": "3.1.9",
+          "id": "CVE-2026-102598",
+          "installed_version": "1.0.1",
+          "package": "Werkzeug",
+          "severity": "MEDIUM"
         },
         {
           "fixed_version": "10.46-1~deb13u3",
@@ -557,13 +564,6 @@
           "id": "CVE-2026-18508",
           "installed_version": "1.35+dfsg-3.1",
           "package": "tar",
-          "severity": "MEDIUM"
-        },
-        {
-          "fixed_version": "",
-          "id": "CVE-2026-19487",
-          "installed_version": "5.40.1-6+deb13u1",
-          "package": "perl-base",
           "severity": "MEDIUM"
         },
         {
@@ -1040,21 +1040,21 @@
           "id": "CVE-2026-75804",
           "installed_version": "3.5.7-1~deb13u2",
           "package": "libssl3t64",
-          "severity": "HIGH"
+          "severity": "MEDIUM"
         },
         {
           "fixed_version": "3.5.7-1~deb13u3",
           "id": "CVE-2026-75804",
           "installed_version": "3.5.7-1~deb13u2",
           "package": "openssl",
-          "severity": "HIGH"
+          "severity": "MEDIUM"
         },
         {
           "fixed_version": "3.5.7-1~deb13u3",
           "id": "CVE-2026-75804",
           "installed_version": "3.5.7-1~deb13u2",
           "package": "openssl-provider-legacy",
-          "severity": "HIGH"
+          "severity": "MEDIUM"
         },
         {
           "fixed_version": "3.5.7-1~deb13u3",
@@ -1561,6 +1561,13 @@
           "severity": "LOW"
         },
         {
+          "fixed_version": "5.8.1-1+deb13u2",
+          "id": "DSA-6549-1",
+          "installed_version": "5.8.1-1+deb13u1",
+          "package": "liblzma5",
+          "severity": "UNKNOWN"
+        },
+        {
           "fixed_version": "",
           "id": "TEMP-0290435-0B57B5",
           "installed_version": "1.35+dfsg-3.1",
@@ -1596,7 +1603,7 @@
           "severity": "LOW"
         },
         {
-          "fixed_version": "",
+          "fixed_version": "5.8.1-1+deb13u2",
           "id": "TEMP-1147318-639065",
           "installed_version": "5.8.1-1+deb13u1",
           "package": "liblzma5",
