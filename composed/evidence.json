@@ -48,168 +48,6 @@
       "family": "graded-enforcement",
       "name": "cage-baseline",
       "kind": "PriorityClass",
-      "version": "5.0.0",
-      "source_party": "platform",
-      "source_sha": "703eff6aee959843c4160aa54fd03413f62858cc",
-      "action": null
-    },
-    {
-      "family": "graded-enforcement",
-      "name": "cage-isolated",
-      "kind": "PriorityClass",
-      "version": "5.0.0",
-      "source_party": "platform",
-      "source_sha": "703eff6aee959843c4160aa54fd03413f62858cc",
-      "action": null
-    },
-    {
-      "family": "graded-enforcement",
-      "name": "cage-netpol",
-      "kind": "GeneratingPolicy",
-      "version": "5.0.0",
-      "source_party": "platform",
-      "source_sha": "703eff6aee959843c4160aa54fd03413f62858cc",
-      "action": null
-    },
-    {
-      "family": "graded-enforcement",
-      "name": "cage-quarantine",
-      "kind": "PriorityClass",
-      "version": "5.0.0",
-      "source_party": "platform",
-      "source_sha": "703eff6aee959843c4160aa54fd03413f62858cc",
-      "action": null
-    },
-    {
-      "family": "graded-enforcement",
-      "name": "cage-restricted",
-      "kind": "PriorityClass",
-      "version": "5.0.0",
-      "source_party": "platform",
-      "source_sha": "703eff6aee959843c4160aa54fd03413f62858cc",
-      "action": null
-    },
-    {
-      "family": "graded-enforcement",
-      "name": "cage-tier",
-      "kind": "MutatingPolicy",
-      "version": "5.0.0",
-      "source_party": "platform",
-      "source_sha": "703eff6aee959843c4160aa54fd03413f62858cc",
-      "action": null
-    },
-    {
-      "family": "posture",
-      "name": "posture-trust-boundary",
-      "kind": "ValidatingPolicy",
-      "version": "5.0.0",
-      "source_party": "platform",
-      "source_sha": "703eff6aee959843c4160aa54fd03413f62858cc",
-      "action": "Deny"
-    },
-    {
-      "family": "posture",
-      "name": "stamp-posture",
-      "kind": "MutatingPolicy",
-      "version": "5.0.0",
-      "source_party": "platform",
-      "source_sha": "703eff6aee959843c4160aa54fd03413f62858cc",
-      "action": null
-    },
-    {
-      "family": "require-nonroot",
-      "name": "require-nonroot",
-      "kind": "ValidatingPolicy",
-      "version": "5.0.0",
-      "source_party": "platform",
-      "source_sha": "703eff6aee959843c4160aa54fd03413f62858cc",
-      "action": "Audit"
-    },
-    {
-      "family": "graded-enforcement",
-      "name": "cage-baseline",
-      "kind": "PriorityClass",
-      "version": "6.0.0",
-      "source_party": "platform",
-      "source_sha": "703eff6aee959843c4160aa54fd03413f62858cc",
-      "action": null
-    },
-    {
-      "family": "graded-enforcement",
-      "name": "cage-isolated",
-      "kind": "PriorityClass",
-      "version": "6.0.0",
-      "source_party": "platform",
-      "source_sha": "703eff6aee959843c4160aa54fd03413f62858cc",
-      "action": null
-    },
-    {
-      "family": "graded-enforcement",
-      "name": "cage-netpol",
-      "kind": "GeneratingPolicy",
-      "version": "6.0.0",
-      "source_party": "platform",
-      "source_sha": "703eff6aee959843c4160aa54fd03413f62858cc",
-      "action": null
-    },
-    {
-      "family": "graded-enforcement",
-      "name": "cage-quarantine",
-      "kind": "PriorityClass",
-      "version": "6.0.0",
-      "source_party": "platform",
-      "source_sha": "703eff6aee959843c4160aa54fd03413f62858cc",
-      "action": null
-    },
-    {
-      "family": "graded-enforcement",
-      "name": "cage-restricted",
-      "kind": "PriorityClass",
-      "version": "6.0.0",
-      "source_party": "platform",
-      "source_sha": "703eff6aee959843c4160aa54fd03413f62858cc",
-      "action": null
-    },
-    {
-      "family": "graded-enforcement",
-      "name": "cage-tier",
-      "kind": "MutatingPolicy",
-      "version": "6.0.0",
-      "source_party": "platform",
-      "source_sha": "703eff6aee959843c4160aa54fd03413f62858cc",
-      "action": null
-    },
-    {
-      "family": "posture",
-      "name": "posture-trust-boundary",
-      "kind": "ValidatingPolicy",
-      "version": "6.0.0",
-      "source_party": "platform",
-      "source_sha": "703eff6aee959843c4160aa54fd03413f62858cc",
-      "action": "Deny"
-    },
-    {
-      "family": "posture",
-      "name": "stamp-posture",
-      "kind": "MutatingPolicy",
-      "version": "6.0.0",
-      "source_party": "platform",
-      "source_sha": "703eff6aee959843c4160aa54fd03413f62858cc",
-      "action": null
-    },
-    {
-      "family": "require-nonroot",
-      "name": "require-nonroot",
-      "kind": "ValidatingPolicy",
-      "version": "6.0.0",
-      "source_party": "platform",
-      "source_sha": "703eff6aee959843c4160aa54fd03413f62858cc",
-      "action": "Audit"
-    },
-    {
-      "family": "graded-enforcement",
-      "name": "cage-baseline",
-      "kind": "PriorityClass",
       "version": "7.0.0",
       "source_party": "platform",
       "source_sha": "703eff6aee959843c4160aa54fd03413f62858cc",
@@ -4220,7 +4058,7 @@
       "name": "pinned-parent-lacks-rendered-versions",
       "detail": "the composed set renders policy versions the pinned parent commit does not contain; the header names a parent release that holds none of these trees. every rendered version is present at the pinned commit",
       "count": 0,
-      "checked": 3,
+      "checked": 1,
       "status": "closed"
     },
     {
@@ -4419,54 +4257,6 @@
     "file": "gitops/engine/kyverno.yaml",
     "pairings": [
       {
-        "subject": "platform policy 5.0.0",
-        "party": "platform",
-        "line": "5.0.0",
-        "tree": "platform@5.0.0",
-        "read_from": "distribution/versions.yaml",
-        "tested_engines": [
-          "1.18.2"
-        ],
-        "status": "supported",
-        "reason": null,
-        "bodies": [
-          "cage-netpol",
-          "cage-tier",
-          "posture-trust-boundary",
-          "require-nonroot",
-          "stamp-posture"
-        ],
-        "controls": [
-          "ac-4",
-          "ac-6",
-          "cm-6"
-        ]
-      },
-      {
-        "subject": "platform policy 6.0.0",
-        "party": "platform",
-        "line": "6.0.0",
-        "tree": "platform@5.0.0",
-        "read_from": "distribution/versions.yaml",
-        "tested_engines": [
-          "1.18.2"
-        ],
-        "status": "supported",
-        "reason": null,
-        "bodies": [
-          "cage-netpol",
-          "cage-tier",
-          "posture-trust-boundary",
-          "require-nonroot",
-          "stamp-posture"
-        ],
-        "controls": [
-          "ac-4",
-          "ac-6",
-          "cm-6"
-        ]
-      },
-      {
         "subject": "platform policy 7.0.0",
         "party": "platform",
         "line": "7.0.0",
@@ -4517,5 +4307,51 @@
         ]
       }
     ]
-  }
+  },
+  "consumer_retirements": [
+    {
+      "schema": 1,
+      "kind": "consumer-retirement",
+      "party": "ludlow",
+      "repository": "policy-as-versioned-ludlow/ludlow",
+      "publisher": "platform",
+      "parent": {
+        "version": "5.0.0",
+        "tag": "v5.0.0",
+        "commit": "703eff6aee959843c4160aa54fd03413f62858cc",
+        "window": [
+          "5.0.0",
+          "6.0.0",
+          "7.0.0"
+        ]
+      },
+      "retired": [
+        "5.0.0",
+        "6.0.0"
+      ],
+      "retained": [
+        "7.0.0"
+      ],
+      "engine": {
+        "from": "1.18.2",
+        "to": "1.19.1"
+      },
+      "baseline": {
+        "original_commit": "f7449340dee254cba43ad5a829ab01403df9a97d",
+        "source_commit": "9f76b2af169e76030538f0816db54e30f817b220",
+        "run_id": 38911688433,
+        "attempt": 1,
+        "appends": {
+          "drift/samples.jsonl": "9a03df4b958534f0f0d25add9857ea1aaab29b026e8aa94fc650c64c16c3a77a",
+          "drift/workload-samples.jsonl": "80a105515d0355f15e7fbca5697d81acdd958fdf192802d338c6b91e7469778c",
+          "drift/oscal-samples.jsonl": "af6d414a1a3a9aadd3f761333e724aade44d2e83c7606714ad145a1c45214777"
+        }
+      },
+      "authorization": {
+        "decided_by": "assistant under delegated ADR-0025 implementation authority",
+        "decided_on": "2026-10-17",
+        "basis": "eco-system ticket150 and the owner's delegated implementation authorization; ADR-0038 explicit consumer retirement"
+      }
+    }
+  ]
 }

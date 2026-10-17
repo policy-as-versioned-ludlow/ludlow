@@ -31,24 +31,6 @@ Source: the object files under `composed/`, and `composed/evidence.json` → `me
 | `policy-version-orphan-cage-holds` | MutatingPolicy | — (not versioned) | mutates (1) | platform@5.0.0 | `distribution/versions.yaml (rendered from the array, ticket 89)` |
 | `policy-version-orphan-cage` | MutatingPolicy | — (not versioned) | mutates (4) | platform@5.0.0 | `distribution/versions.yaml (rendered from the array, ticket 89)` |
 | `policy-version-orphan-guard` | ValidatingPolicy | — (not versioned) | refuses (1) | platform@5.0.0 | `distribution/versions.yaml (rendered from the array)` |
-| `cage-baseline-5-0-0` | PriorityClass | 5.0.0 | nothing this page can read | platform@5.0.0 | `distribution/policies/v5.0.0/priorityclasses.yaml` |
-| `cage-isolated-5-0-0` | PriorityClass | 5.0.0 | nothing this page can read | platform@5.0.0 | `distribution/policies/v5.0.0/priorityclasses.yaml` |
-| `cage-netpol-5-0-0` | GeneratingPolicy | 5.0.0 | generates (1), evaluates | platform@5.0.0 | `distribution/policies/v5.0.0/cage-netpol.yaml` |
-| `cage-quarantine-5-0-0` | PriorityClass | 5.0.0 | nothing this page can read | platform@5.0.0 | `distribution/policies/v5.0.0/priorityclasses.yaml` |
-| `cage-restricted-5-0-0` | PriorityClass | 5.0.0 | nothing this page can read | platform@5.0.0 | `distribution/policies/v5.0.0/priorityclasses.yaml` |
-| `cage-tier-5-0-0` | MutatingPolicy | 5.0.0 | mutates (2) | platform@5.0.0 | `distribution/policies/v5.0.0/cage-tier.yaml` |
-| `posture-trust-boundary-5-0-0` | ValidatingPolicy | 5.0.0 | refuses (1) | platform@5.0.0 | `distribution/policies/v5.0.0/posture-trust-boundary.yaml` |
-| `require-nonroot-5-0-0` | ValidatingPolicy | 5.0.0 | refuses (1) | platform@5.0.0 | `distribution/policies/v5.0.0/require-nonroot.yaml` |
-| `stamp-posture-5-0-0` | MutatingPolicy | 5.0.0 | mutates (1) | platform@5.0.0 | `distribution/policies/v5.0.0/stamp-posture.yaml` |
-| `cage-baseline-6-0-0` | PriorityClass | 6.0.0 | nothing this page can read | platform@5.0.0 | `distribution/policies/v6.0.0/priorityclasses.yaml` |
-| `cage-isolated-6-0-0` | PriorityClass | 6.0.0 | nothing this page can read | platform@5.0.0 | `distribution/policies/v6.0.0/priorityclasses.yaml` |
-| `cage-netpol-6-0-0` | GeneratingPolicy | 6.0.0 | generates (1), evaluates | platform@5.0.0 | `distribution/policies/v6.0.0/cage-netpol.yaml` |
-| `cage-quarantine-6-0-0` | PriorityClass | 6.0.0 | nothing this page can read | platform@5.0.0 | `distribution/policies/v6.0.0/priorityclasses.yaml` |
-| `cage-restricted-6-0-0` | PriorityClass | 6.0.0 | nothing this page can read | platform@5.0.0 | `distribution/policies/v6.0.0/priorityclasses.yaml` |
-| `cage-tier-6-0-0` | MutatingPolicy | 6.0.0 | mutates (2) | platform@5.0.0 | `distribution/policies/v6.0.0/cage-tier.yaml` |
-| `posture-trust-boundary-6-0-0` | ValidatingPolicy | 6.0.0 | refuses (1) | platform@5.0.0 | `distribution/policies/v6.0.0/posture-trust-boundary.yaml` |
-| `require-nonroot-6-0-0` | ValidatingPolicy | 6.0.0 | refuses (1) | platform@5.0.0 | `distribution/policies/v6.0.0/require-nonroot.yaml` |
-| `stamp-posture-6-0-0` | MutatingPolicy | 6.0.0 | mutates (1) | platform@5.0.0 | `distribution/policies/v6.0.0/stamp-posture.yaml` |
 | `cage-baseline-7-0-0` | PriorityClass | 7.0.0 | nothing this page can read | platform@5.0.0 | `distribution/policies/v7.0.0/priorityclasses.yaml` |
 | `cage-isolated-7-0-0` | PriorityClass | 7.0.0 | nothing this page can read | platform@5.0.0 | `distribution/policies/v7.0.0/priorityclasses.yaml` |
 | `cage-netpol-7-0-0` | GeneratingPolicy | 7.0.0 | generates (1), evaluates | platform@5.0.0 | `distribution/policies/v7.0.0/cage-netpol.yaml` |
@@ -58,7 +40,7 @@ Source: the object files under `composed/`, and `composed/evidence.json` → `me
 | `require-nonroot-7-0-0` | ValidatingPolicy | 7.0.0 | refuses (1) | platform@5.0.0 | `distribution/policies/v7.0.0/require-nonroot.yaml` |
 | `stamp-posture-7-0-0` | MutatingPolicy | 7.0.0 | mutates (1) | platform@5.0.0 | `distribution/policies/v7.0.0/stamp-posture.yaml` |
 
-34 object(s) in the artefact; `members[]` records 34: `cage-baseline`, `cage-isolated`, `cage-netpol`, `cage-quarantine`, `cage-restricted`, `cage-tier`, `posture-trust-boundary`, `stamp-posture`, `require-nonroot`, `cage-baseline`, `cage-isolated`, `cage-netpol`, `cage-quarantine`, `cage-restricted`, `cage-tier`, `posture-trust-boundary`, `stamp-posture`, `require-nonroot`, `cage-baseline`, `cage-isolated`, `cage-netpol`, `cage-quarantine`, `cage-restricted`, `cage-tier`, `stamp-posture`, `require-nonroot`, `policy-version-orphan-guard`, `governed-namespace-requires-claim`, `policy-version-orphan-cage`, `policy-version-orphan-cage-holds`, `governed-namespace-cage-holds`, `governed-namespace-unclaimed-report`, `cage-netpol-bottom-rung`, `cage-isolated`.
+16 object(s) in the artefact; `members[]` records 16: `cage-baseline`, `cage-isolated`, `cage-netpol`, `cage-quarantine`, `cage-restricted`, `cage-tier`, `stamp-posture`, `require-nonroot`, `policy-version-orphan-guard`, `governed-namespace-requires-claim`, `policy-version-orphan-cage`, `policy-version-orphan-cage-holds`, `governed-namespace-cage-holds`, `governed-namespace-unclaimed-report`, `cage-netpol-bottom-rung`, `cage-isolated`.
 
 ## 3. The cage you land in
 
@@ -169,17 +151,9 @@ Source: `composed/evidence.json` → `limits[]`, plus every field this render lo
 
 One recorded limit is deliberately not stated above: `publisher-clone-absent` records which publisher clones the run that re-derived this artefact could read, which is a fact about that run and not about the artefact; a page that stated it could not re-render byte-identically with a publisher absent, and re-rendering with a publisher absent is what `composition.py verify` holds this page to (ticket 45). `composed/evidence.json` records it in full.
 
-**20 field(s) this render looked for in the artefact and did not find.** Where a field is absent this page states nothing in its place — no default prose, no zero (ADR-0020: a missing instrument refuses; it is never invented).
+**12 field(s) this render looked for in the artefact and did not find.** Where a field is absent this page states nothing in its place — no default prose, no zero (ADR-0020: a missing instrument refuses; it is never invented).
 
 - `spec of cage-isolated` (in `composed/bottom-rung-priorityclass.yaml`) — this object declares no mutation, validation or generation this page can read
-- `spec of cage-baseline-5-0-0` (in `composed/policies/v5.0.0/cage-baseline.yaml`) — this object declares no mutation, validation or generation this page can read
-- `spec of cage-isolated-5-0-0` (in `composed/policies/v5.0.0/cage-isolated.yaml`) — this object declares no mutation, validation or generation this page can read
-- `spec of cage-quarantine-5-0-0` (in `composed/policies/v5.0.0/cage-quarantine.yaml`) — this object declares no mutation, validation or generation this page can read
-- `spec of cage-restricted-5-0-0` (in `composed/policies/v5.0.0/cage-restricted.yaml`) — this object declares no mutation, validation or generation this page can read
-- `spec of cage-baseline-6-0-0` (in `composed/policies/v6.0.0/cage-baseline.yaml`) — this object declares no mutation, validation or generation this page can read
-- `spec of cage-isolated-6-0-0` (in `composed/policies/v6.0.0/cage-isolated.yaml`) — this object declares no mutation, validation or generation this page can read
-- `spec of cage-quarantine-6-0-0` (in `composed/policies/v6.0.0/cage-quarantine.yaml`) — this object declares no mutation, validation or generation this page can read
-- `spec of cage-restricted-6-0-0` (in `composed/policies/v6.0.0/cage-restricted.yaml`) — this object declares no mutation, validation or generation this page can read
 - `spec of cage-baseline-7-0-0` (in `composed/policies/v7.0.0/cage-baseline.yaml`) — this object declares no mutation, validation or generation this page can read
 - `spec of cage-isolated-7-0-0` (in `composed/policies/v7.0.0/cage-isolated.yaml`) — this object declares no mutation, validation or generation this page can read
 - `spec of cage-quarantine-7-0-0` (in `composed/policies/v7.0.0/cage-quarantine.yaml`) — this object declares no mutation, validation or generation this page can read
@@ -196,4 +170,4 @@ Two things this page can never tell you, by construction, and neither is a field
 
 ---
 
-Counted from the artefact: 6 publisher(s), 34 installed object(s), 34 recorded member(s), 11 price(s), 287 selected control(s), 284 hole(s), 2 recorded limit(s), 20 named absence(s).
+Counted from the artefact: 6 publisher(s), 16 installed object(s), 16 recorded member(s), 11 price(s), 287 selected control(s), 284 hole(s), 2 recorded limit(s), 12 named absence(s).
