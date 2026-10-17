@@ -112,6 +112,8 @@ jobs:
             ludlow/gitops/flux-system/gotk-sync-feeds.yaml feeds
 
       - name: ticket 18 -- re-render the composed artefact from the recorded parent SHAs, byte-for-byte, before any tag is cut
+        env:
+          GH_TOKEN: ${{ github.token }}
         # Ticket 12's verify(): a release gate after the tag can only burn
         # the version number (ADR-0011's own reasoning for the publisher
         # gate, reused here). ludlow is checked out at ludlow/ and every parent

@@ -75,6 +75,7 @@ jobs:
 
       - name: run self-hosted renovate against this repo
         env:
+          GH_TOKEN: ${{ github.token }}
           RENOVATE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RENOVATE_PLATFORM: github
           RENOVATE_ALLOWED_COMMANDS: '["bash .github/scripts/complete-feed-bump.sh"]'
