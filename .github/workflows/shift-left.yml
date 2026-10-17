@@ -97,6 +97,14 @@ jobs:
       - name: fetch this PR's base commit too (ticket cs-28 needs the OLD platform pin, not just the new one)
         run: git -C ludlow fetch origin ${{ github.event.pull_request.base.sha }}
 
+      - name: Install pinned identity verifier
+        uses: ./ludlow/.github/actions/install-gitsign
+
+      - name: Independently pinned compiler tools
+        uses: ./ludlow/.github/actions/platform-tools
+        with:
+          adopter-dir: ludlow
+
       - name: read the platform tag THIS PR proposes (from the PR head's own platform-pin.yaml -- bug #1 fix)
         id: pin
         run: |
@@ -273,6 +281,8 @@ jobs:
 
       - name: adopter gate -- verify pin, verify platform's evidence, compose this institution's own bump (ticket cs-28)
         id: adopter-gate
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           pip install --quiet pyyaml
@@ -293,6 +303,7 @@ jobs:
             --new-ref "${{ github.event.pull_request.head.sha }}" \
             --composed-base-ref "${{ github.event.pull_request.base.sha }}" \
             --composed-head-ref "${{ github.event.pull_request.head.sha }}" \
+            --retirement-tools-dir platform-tools \
             --out-comment adopter-gate-comment.md \
             --identity-regexp "${ADOPTER_GATE_IDENTITY_REGEXP}" \
             --issuer "${ADOPTER_GATE_ISSUER}"
@@ -462,6 +473,8 @@ jobs:
           python3 ludlow/scripts/render_composed.py reach
 
       - name: recompose ludlow's party artefact; fail on refusal or drift; print the document as the job summary
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -uo pipefail
           pip install --quiet pyyaml

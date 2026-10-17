@@ -265,6 +265,8 @@ jobs:
 
       - name: re-compose at today's date -- into RUNNER_TEMP, never into the repo
         id: recompose
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -uo pipefail
           as_of="$(date -u +%F)"

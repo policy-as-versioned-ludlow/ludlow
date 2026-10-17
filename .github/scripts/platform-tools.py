@@ -23,6 +23,7 @@ IDENTITY = (r'^https://github\.com/policy-as-versioned-platform/platform/'
 ISSUER = 'https://token.actions.githubusercontent.com'
 COMMANDS = {'compose': ('compose/composition.py', 'compose'),
             'verify': ('compose/composition.py', 'verify'),
+            'retirement-check': ('compose/consumer_retirement.py', 'admit'),
             'tier-check': ('shift-left/tier_binding.py', 'check'),
             'tier-propose': ('wargamer/tier_pr.py', 'run')}
 
@@ -49,7 +50,7 @@ def canonical_arguments(command: str, values: list[str], adopter: Path) -> list[
             raise ValueError('compose/verify requires the adopter path first')
         result[0] = path(result[0], True)
         start = 1
-    path_options = {'--estate-clone', '--out', '--evidence', '--rejections', '--adopter-dir'}
+    path_options = {'--estate-clone', '--out', '--evidence', '--rejections', '--adopter-dir', '--parent-dir'}
     index = start
     while index < len(result):
         option, equal, value = result[index].partition('=')
