@@ -23,7 +23,7 @@ KIND = "flux.oscal-lane/v1"
 def selfcheck() -> int:
     fail = {"uuid": "failed-observation", "props": [{"name": "result", "value": "fail"}]}
     passed = {"uuid": "passed-observation", "props": [{"name": "result", "value": "pass"}]}
-    result = {"observations": [fail, passed], "findings": [{"target": {"status": {"state": "not-satisfied"}},
+    result: dict = {"observations": [fail, passed], "findings": [{"target": {"status": {"state": "not-satisfied"}},
               "related-observations": [{"observation-uuid": fail["uuid"]}, {"observation-uuid": passed["uuid"]}]}]}
     assessment = {"assessment-results": {"results": [result]}}
     assert missing_risks(assessment, []) == ["failed-observation"], "a failed observation needs a cage risk"
