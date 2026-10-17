@@ -74,6 +74,7 @@ say() { echo; echo "== $* =="; }
 # Exercise the actual tag writer with a signer that refuses before issuance.
 python3 "$HERE/.github/tests/test_release_signing.py"
 python3 "$HERE/.github/tests/test_proposal_signing.py"
+python3 "$HERE/.github/tests/test_consumer_retirement_gate.py"
 
 # ---------------------------------------------------------------------------
 say "Part A: ADOPTER_GATE_IDENTITY_REGEXP, pure and offline"

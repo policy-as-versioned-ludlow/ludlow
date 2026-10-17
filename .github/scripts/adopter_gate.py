@@ -570,6 +570,15 @@ def compose(retired: list[str], changed: list[dict], platform_dir: Path,
     return RANK_NAME[rank], results
 
 
+def _bump_rows(declared: str, composed: str) -> list[str]:
+    return [
+        "| | declared (publisher's tag) | composed (this institution) |",
+        "|---|---|---|",
+        f"| bump | **{declared}** | **{composed}** |",
+        "",
+    ]
+
+
 def render_comment(old_pin: dict, new_pin: dict, declared: str, composed: str,
                     results: list[dict], note: str | None, acceptance: dict | None = None) -> str:
     """The evidence, rendered for a human reviewer (ticket cs-29). Declared
@@ -584,11 +593,7 @@ def render_comment(old_pin: dict, new_pin: dict, declared: str, composed: str,
         "",
         f"platform pin: `{old_pin['tag']}` -> `{new_pin['tag']}`",
         "",
-        "| | declared (publisher's tag) | composed (this institution) |",
-        "|---|---|---|",
-        f"| bump | **{declared}** | **{composed}** |",
-        "",
-    ]
+    ] + _bump_rows(declared, composed)
     if note:
         lines += [f"> {note}", ""]
     if acceptance is not None:
@@ -673,10 +678,14 @@ def render_comment(old_pin: dict, new_pin: dict, declared: str, composed: str,
     return "\n".join(lines) + "\n"
 
 
-def write_refusal_comment(reason: str, old_pin: dict | None, new_pin: dict | None) -> str:
+def write_refusal_comment(reason: str, old_pin: dict | None, new_pin: dict | None,
+                          completed_bump: tuple[str, str] | None = None) -> str:
+    """Report a completed (declared, composed) fold beside a refusal, never infer one."""
     lines = ["### computed-semver adopter gate -- REFUSED", "", f"> {reason}", ""]
     if old_pin and new_pin:
         lines.insert(2, f"platform pin: `{old_pin['tag']}` -> `{new_pin['tag']}`")
+    if completed_bump is not None:
+        lines += _bump_rows(*completed_bump)
     return "\n".join(lines) + "\n"
 
 
@@ -696,6 +705,7 @@ def run(ludlow_dir: Path, platform_dir: Path, old_ref: str, new_ref: str,
     becomes a refusal naming the exception, never an unhandled traceback
     out of a required status check."""
     old_pin = new_pin = None
+    completed_bump = None
     try:
         old_pin = read_pin(ludlow_dir, old_ref)
         new_pin = read_pin(ludlow_dir, new_ref)
@@ -731,6 +741,7 @@ def run(ludlow_dir: Path, platform_dir: Path, old_ref: str, new_ref: str,
 
         with tempfile.TemporaryDirectory() as td:
             composed, results = compose(retired, changed, platform_dir, identity_regexp, issuer, Path(td))
+        completed_bump = declared, composed
 
         note = None
         if RANK[composed] < RANK[declared]:
@@ -790,7 +801,7 @@ def run(ludlow_dir: Path, platform_dir: Path, old_ref: str, new_ref: str,
 
     except Refused as exc:
         print(f"REFUSE: {exc}")
-        return 1, write_refusal_comment(str(exc), old_pin, new_pin)
+        return 1, write_refusal_comment(str(exc), old_pin, new_pin, completed_bump)
     except (OSError, subprocess.TimeoutExpired) as exc:
         # A missing/broken local tool (verify_evidence's `cosign` subprocess call is
         # the one reachable case: FileNotFoundError if cosign isn't on PATH) -- not
@@ -804,14 +815,14 @@ def run(ludlow_dir: Path, platform_dir: Path, old_ref: str, new_ref: str,
             f"({type(exc).__name__}: {exc}) -- refusing rather than crashing"
         )
         print(f"REFUSE: {reason}")
-        return 1, write_refusal_comment(reason, old_pin, new_pin)
+        return 1, write_refusal_comment(reason, old_pin, new_pin, completed_bump)
     except (KeyError, IndexError, TypeError, AttributeError, json.JSONDecodeError, yaml.YAMLError) as exc:
         reason = (
             f"platform's data was malformed in a way this gate did not specifically "
             f"anticipate ({type(exc).__name__}: {exc}) -- refusing rather than crashing"
         )
         print(f"REFUSE: {reason}")
-        return 1, write_refusal_comment(reason, old_pin, new_pin)
+        return 1, write_refusal_comment(reason, old_pin, new_pin, completed_bump)
 
 
 def selfcheck() -> None:
