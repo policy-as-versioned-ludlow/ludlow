@@ -18,26 +18,28 @@
 # says where each came from: the CLI sha256 from the release's own checksums.txt, and the
 # install.yaml sha256 from the GitHub release API's asset digest (checksums.txt does not list
 # install.yaml). Hub verify/adopter-engines holds this file to that row on platform origin/main.
-# The figures are carried here, and not read from the table, because the platform tools tag this
-# repository pins (.github/platform-tools-pin.yaml, v4.0.0) predates the table.
+# The figures are carried here so the drift lane and offline CLI read one explicit declaration.
+# This move uses the actual signed compiler v5.1.0 engine-table row; changing build tools does
+# not change the accepted implementation parent or policy window.
 #
-# WHAT IT INSTALLS, measured 2026-09-26 on the bytes install.sha256 names: 70 objects. The 24
+# HISTORICAL 1.18.2 INSTALL, measured 2026-09-26: 70 objects. The 24
 # namespaced ones (4 Deployments, 6 Services, 4 ServiceAccounts, 4 Roles, 4 RoleBindings and
 # 2 ConfigMaps) all sit in the `kyverno` Namespace, which the platform declares as substrate
 # (engine/namespaces.yaml, `posture.acme.io/tier: infra`). The other 46 are cluster-scoped: the
 # Namespace itself, 22 CRDs, 16 ClusterRoles and 7 ClusterRoleBindings. Composition prices none
-# of them: it walks this repository's own files, and this file declares no object.
+# of them: it walks this repository's own files, and this file declares no object. The new
+# 1.19.1 install is selected by the signed table row below; no current cluster state is asserted.
 #
 # TO MOVE THE ENGINE: one reviewed pull request that changes the version and every figure
 # together, from the engine table's row for the new version, and recomposes. Ticket 150 is the
 # only ticket that moves an adopter's engine.
 schema: 1
 engine: kyverno
-version: "1.18.2"
+version: "1.19.1"
 install:
-  url: https://github.com/kyverno/kyverno/releases/download/v1.18.2/install.yaml
-  sha256: "3dcd43eaf11f0719084217148cd0c82a8fa49faa9b1a783ea5bea2cf84041bda"
+  url: https://github.com/kyverno/kyverno/releases/download/v1.19.1/install.yaml
+  sha256: "d3322cb346d3d42dd0f41e230b0d1d7bc5619960e1c36fdac4d9151d724b88e6"
 cli:
   linux_x86_64:
-    file: kyverno-cli_v1.18.2_linux_x86_64.tar.gz
-    sha256: "cb2feb8356149fd2fe774c894ccf0969f4a60a83867dd913af724f74ffbbc18b"
+    file: kyverno-cli_v1.19.1_linux_x86_64.tar.gz
+    sha256: "b38228f367fc0fdc2b08f4c83ea50ac5f16c60ff8d62d76a66157c33c47b70ae"
