@@ -90,7 +90,6 @@ Source: `composed/evidence.json` → `prices[]`, and `composed/HEADER.yaml` → 
 - **feeds/eol** (switching) — basis: re-composed with this publisher's feed edges dropped
 
 - **ico/penalty-schema** carries 4 priced hole(s) inside that amount: `nist/pl-2` GBP 921,527,317.07, `nist/ra-3` GBP 921,527,317.07, `nist/ca-2` GBP 614,351,544.71, `nist/ir-8` GBP 614,351,544.71
-- **feeds/eol** records a closed priced hole: untagged-pin `feeds/eol@v2` — tag eol/v2.0.0 on the feeds checkout carries a signature block; the hole the last signed artefact recorded is closed, priced at the whole entry (GBP 787,227.83).
 
 **Exposure** — booked under perspective `ludlow` in `GBP`.
 
@@ -135,7 +134,7 @@ Source: `composed/HEADER.yaml` → `baseline`, `selected-controls`, `holes`; `co
 - So 3 of 287 selected controls have an implementation in this artefact. A hole is priced, never refused (ADR-0020).
 - `refusals[]`: 0
 - `restatements[]`: 0
-- `deltas[]`: 1
+- `deltas[]`: 0
 - `ungoverned[]`: 0
 
 ## 6. What this handbook cannot say

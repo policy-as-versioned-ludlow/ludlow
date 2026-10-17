@@ -25,8 +25,8 @@
 #     platform's and nist's signed parents (composed/HEADER.yaml records those parent SHAs, and
 #     fact 3 of the sample checks the live platform and nist pins against them).
 #   * apps retain their genuine v4.0.0 Source A binding; composed selects the signed
-#     v5.0.1 compatibility delivery B. It preserves Source A's measured retirement and
-#     serves policy 7.0.0 on engine 1.18.2 with the existing gates and app dependencies.
+#     v5.1.0 engine Source A. It preserves the measured retirement and serves policy 7.0.0
+#     on declared engine 1.19.1 with the existing gates and app dependencies.
 #   * there is no `spec.verify` here. Flux's GitRepository.spec.verify speaks OpenPGP, and one
 #     signature -- the gitsign tag -- is the only one this estate has (ADR-0023, D3). Verification
 #     at the source boundary is the identity-pinned gitsign-verifying controller of ticket 41,
@@ -72,9 +72,9 @@ spec:
   interval: 1m
   url: https://github.com/policy-as-versioned-ludlow/ludlow
   ref:
-    tag: v5.0.1
-    commit: c857928e9effa4cc01098d780b43a726e1d7306c
-    # The resolved SHA of the genuine signed v5.0.1 compatibility delivery B release.
+    tag: v5.1.0
+    commit: 6583937bf9e1958d931c2e377688b36dc895ae15
+    # The resolved SHA of the genuine signed v5.1.0 engine Source A release.
     # Belt-and-braces immutability, ADR-0001.
 ---
 apiVersion: fluxcd.controlplane.io/v1
@@ -93,8 +93,8 @@ spec:
         # directories the pinned tag carries and every machinery allow-list at that tag. Move it
         # in the same pull request that moves the tag.
         - { version: "7.0.0" }
-        # The explicit consumer retirement retains 7.0.0 while the engine remains at 1.18.2.
-        # Its signed composition delivery must land before the planned engine transition.
+        # The explicit consumer retirement was delivered on baseline engine 1.18.2 first.
+        # The signed engine Source A now retains the same 7.0.0 on declared engine 1.19.1.
   resourcesTemplate: |
     << range $v := (index (inputs) "versions") >>
     ---

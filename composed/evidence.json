@@ -3510,18 +3510,7 @@
         "tag": "eol/v2.0.0",
         "detail": "tag eol/v2.0.0 on the feeds checkout carries a signature block"
       },
-      "hole": {
-        "kind": "untagged-pin",
-        "source": "feeds",
-        "name": "eol",
-        "version": "v2",
-        "perspective": "ludlow",
-        "currency": "GBP",
-        "status": "closed",
-        "amount": 787227.8274739302,
-        "priced_by": "feeds eol@v2: the exposure the pin prices, read off a feed no signed tag carries",
-        "detail": "tag eol/v2.0.0 on the feeds checkout carries a signature block; the hole the last signed artefact recorded is closed"
-      },
+      "hole": null,
       "publisher_observation_scope": "Publisher tags were observed when this artefact was composed; the recorded observation is replayed offline and during verification. It does not establish the publisher's current newest major. A fresh composition with the publisher present refreshes it.",
       "superseded": {
         "state": "current",
@@ -3964,19 +3953,7 @@
       ]
     }
   ],
-  "deltas": [
-    {
-      "kind": "closed-untagged-pin",
-      "source": "feeds",
-      "name": "eol",
-      "version": "v2",
-      "perspective": "ludlow",
-      "currency": "GBP",
-      "amount": 787227.8274739302,
-      "priced_by": "feeds eol@v2: the exposure the pin prices, read off a feed no signed tag carries",
-      "detail": "ludlow pins feeds/eol@v2; tag eol/v2.0.0 on the feeds checkout carries a signature block; the hole the last signed artefact recorded is closed; 787227.83 GBP of exposure is again against a signed feed"
-    }
-  ],
+  "deltas": [],
   "floor_change": {
     "schema": 1,
     "before": {
