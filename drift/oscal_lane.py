@@ -30,6 +30,18 @@ def selfcheck() -> int:
     risk = {"related-observations": [{"observation-uuid": "failed-observation"}]}
     assert missing_risks(assessment, [risk]) == [], "the actual risk resolves the failed observation"
     assert missing_risks(assessment, [{"related-observations": [{"observation-uuid": "somebody-else"}]}]) == ["failed-observation"]
+    # Different served versions can report the same observation UUID. A later
+    # pass or skip must not hide a failure of that same workload/check.
+    for quiet_result in ("pass", "skip"):
+        quiet = {"uuid": fail["uuid"], "props": [{"name": "result", "value": quiet_result}]}
+        quiet_only = {"assessment-results": {"results": [{**result, "observations": [quiet]}]}}
+        assert missing_risks(quiet_only, []) == []
+        for observations in ([fail, quiet], [quiet, fail]):
+            collision = {"assessment-results": {"results": [{**result, "observations": observations}]}}
+            assert missing_risks(collision, []) == ["failed-observation"], "observation order hid a failed risk join"
+            assert missing_risks(collision, [risk]) == [], "the actual linked risk must still resolve the failure"
+    satisfied = {**result, "findings": [{**result["findings"][0], "target": {"status": {"state": "satisfied"}}}]}
+    assert missing_risks({"assessment-results": {"results": [satisfied]}}, []) == []
     # A bare link is not a priced Cage decision. This fixture exercises the collector's
     # validation only; the composer tests bind the real select()/oscal_risk() pair.
     decision = {"action": "Cage", "org": "fixture", "tier": "isolated", "reason": "fixture decision",
@@ -92,14 +104,17 @@ def selfcheck() -> int:
 def missing_risks(assessment: dict, risks: list[dict]) -> list[str]:
     failed = set()
     for result in (assessment.get("assessment-results") or {}).get("results") or []:
-        observations = {o["uuid"]: o for o in result.get("observations") or []}
+        observations: dict[str, list[dict]] = {}
+        for observation in result.get("observations") or []:
+            observations.setdefault(observation["uuid"], []).append(observation)
         for finding in result.get("findings") or []:
             if ((finding.get("target") or {}).get("status") or {}).get("state") != "not-satisfied":
                 continue
             for link in finding.get("related-observations") or []:
                 ident = link["observation-uuid"]
-                obs = observations.get(ident) or {}
-                if any(p.get("name") == "result" and p.get("value") == "fail" for p in obs.get("props") or []):
+                if any(any(p.get("name") == "result" and p.get("value") == "fail"
+                           for p in obs.get("props") or [])
+                       for obs in observations.get(ident) or []):
                     failed.add(ident)
     linked = {link["observation-uuid"] for risk in risks for link in risk.get("related-observations") or []}
     return sorted(failed - linked)
