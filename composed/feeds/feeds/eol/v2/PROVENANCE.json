@@ -23,9 +23,9 @@
     "newer": null,
     "party": "feeds",
     "pin_signature": {
-      "detail": "no signed tag eol/v2.x.y (or v2.x.y) exists on the feeds parent's checkout, which carries 7 tag(s) of its own",
-      "state": "untagged",
-      "tag": null
+      "detail": "tag eol/v2.0.0 on the feeds checkout carries a signature block",
+      "state": "signed",
+      "tag": "eol/v2.0.0"
     },
     "schema": 1,
     "sha": "330fbf06872c2ec2c8637863b624cd902d5534ca",
