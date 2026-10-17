@@ -35,7 +35,7 @@ parents:
 baseline: MODERATE
 declared-engine:
   engine: kyverno
-  version: 1.18.2
+  version: 1.19.1
   file: gitops/engine/kyverno.yaml
 floor-comparison:
   schema: 1
@@ -624,7 +624,7 @@ ungoverned-namespaces: []
 withdrawn-selectable: false
 comparison-inputs:
   schema: 1
-  after: 003b305b06b738aa007a8330996cd60a53e0c9679d6acc3770ba3269cbd72008
+  after: c956b113440df7dc400cb71a352fa001f1d8857903af0ba515f190f4683119b6
   before:
     header:
       parents:

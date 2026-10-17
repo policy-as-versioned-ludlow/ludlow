@@ -4251,7 +4251,7 @@
   "engine": {
     "declared": {
       "engine": "kyverno",
-      "version": "1.18.2",
+      "version": "1.19.1",
       "file": "gitops/engine/kyverno.yaml"
     },
     "file": "gitops/engine/kyverno.yaml",
