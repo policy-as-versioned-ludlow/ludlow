@@ -624,7 +624,7 @@ ungoverned-namespaces: []
 withdrawn-selectable: false
 comparison-inputs:
   schema: 1
-  after: f9563d939cc8c68c42cf0d63ec809420dcb0c89929888cc455f47a4d4195be8c
+  after: c952d6d9fc9c5e62d6938ecb7d91a0ac44974321aca332e1cc55dc89371a5a7b
   before:
     header:
       parents:
@@ -1258,8 +1258,7 @@ comparison-inputs:
       source: feeds
       name: eol
       proposed_tier: isolated
-      hole:
-        status: closed
+      hole: null
     - kind: twin
       source: twin
       name: forward-intel
