@@ -5,6 +5,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+import yaml
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -14,6 +15,20 @@ spec.loader.exec_module(gate)
 
 
 class ConsumerRetirementGate(unittest.TestCase):
+    def test_official_baseline_reads_receive_the_existing_workflow_credential(self):
+        readers = {'shift-left.yml': ['adopter gate --', "recompose ludlow's party"],
+                   'cut-release.yml': ['ticket 18 -- re-render'],
+                   'propose-tier.yml': ["re-compose at today's date"],
+                   'renovate-run.yml': ['run self-hosted renovate']}
+        for workflow, names in readers.items():
+            document = yaml.safe_load((ROOT / '.github/workflows' / workflow).read_text())
+            steps = [step for job in document['jobs'].values() for step in job['steps']]
+            for name in names:
+                with self.subTest(workflow=workflow, reader=name):
+                    step = next(step for step in steps if step.get('name', '').startswith(name))
+                    self.assertEqual(step.get('env', {}).get('GH_TOKEN'), '${{ github.token }}',
+                                     'hosted gh has no ambient login for official baseline GETs')
+
     def test_unchanged_parent_does_not_hide_a_composed_retirement(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
