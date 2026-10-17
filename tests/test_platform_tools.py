@@ -37,7 +37,7 @@ class ToolBoundary(unittest.TestCase):
             git('config', 'user.email', 'test@example.invalid')
             tool_source = 'import os, sys\nprint("TOOLS", *sys.argv[1:])\nprint("CWD", os.getcwd())\n'
             (tools / 'compose/composition.py').write_text(tool_source)
-            for relative in ('shift-left/tier_binding.py', 'wargamer/tier_pr.py'):
+            for relative in ('shift-left/tier_binding.py', 'wargamer/tier_pr.py', 'compose/consumer_retirement.py'):
                 target = tools / relative
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_text(tool_source)
@@ -95,8 +95,11 @@ class ToolBoundary(unittest.TestCase):
             self.assertEqual(completion.returncode, 0, completion.stderr)
             self.assertTrue(completion.stdout.startswith('TOOLS compose'), completion.stdout)
             self.assertIn('CWD ' + str(adopter), result.stdout)
-            for command, tool_command in [('tier-check', 'check'), ('tier-propose', 'run')]:
+            for command, tool_command in [('tier-check', 'check'), ('tier-propose', 'run'),
+                                           ('retirement-check', 'admit')]:
                 forwarded = ['--adopter-dir=adopter', '--evidence', 'evidence.json']
+                if command == 'retirement-check':
+                    forwarded += ['--parent-dir', 'platform', '--base-ref', 'a'*40, '--head-ref', 'b'*40]
                 if command == 'tier-propose':
                     forwarded += ['--rejections=rejections.json', '--org', 'fixture', '--dry-run']
                 call = subprocess.run([sys.executable, str(RUNNER), '--adopter-dir', 'adopter',
@@ -106,6 +109,9 @@ class ToolBoundary(unittest.TestCase):
                 self.assertIn('--adopter-dir=.', call.stdout)
                 self.assertIn('--evidence ' + str(root / 'evidence.json'), call.stdout)
                 self.assertIn('CWD ' + str(adopter), call.stdout)
+                if command == 'retirement-check':
+                    self.assertIn('TOOLS admit', call.stdout)
+                    self.assertIn('--parent-dir ' + str(implementation), call.stdout)
                 if command == 'tier-propose':
                     self.assertIn('--rejections=' + str(root / 'rejections.json'), call.stdout)
             args = (root / 'args').read_text()

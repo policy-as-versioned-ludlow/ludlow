@@ -682,7 +682,8 @@ def write_refusal_comment(reason: str, old_pin: dict | None, new_pin: dict | Non
 
 def run(ludlow_dir: Path, platform_dir: Path, old_ref: str, new_ref: str,
         identity_regexp: str, issuer: str,
-        composed_base_ref: str | None = None, composed_head_ref: str | None = None) -> tuple[int, str]:
+        composed_base_ref: str | None = None, composed_head_ref: str | None = None,
+        retirement_tools_dir: Path | None = None) -> tuple[int, str]:
     """Returns (exit_code, comment_markdown). Never raises -- every failure
     mode becomes a refusal comment and exit 1, so the caller always has
     something to post. This institution does not control platform's YAML/
@@ -707,10 +708,12 @@ def run(ludlow_dir: Path, platform_dir: Path, old_ref: str, new_ref: str,
                 f"(ADR-0001's pin is load-bearing, not decorative)"
             )
 
-        if old_pin["tag"] == new_pin["tag"]:
+        if old_pin["tag"] == new_pin["tag"] and (
+                composed_base_ref is None or composed_head_ref is None):
             return 0, render_comment(old_pin, new_pin, "none", "none", [], "platform pin unchanged in this PR.")
 
-        declared = declared_bump(old_pin["tag"], new_pin["tag"])
+        declared = ('none' if old_pin['tag'] == new_pin['tag'] else
+                    declared_bump(old_pin["tag"], new_pin["tag"]))
         # ADR-0011 (ticket 18): "the composed bump is computed after
         # composition." When composed_base_ref/composed_head_ref are given,
         # read added/retired from ludlow's OWN signed composed/evidence.json
@@ -748,13 +751,34 @@ def run(ludlow_dir: Path, platform_dir: Path, old_ref: str, new_ref: str,
                 raise Refused(f"could not read the acceptance records: {exc}") from exc
             acceptance = acceptance_verdict(records, PARTY, majors, retired)
             acceptance["lines"] = acceptance_lines(acceptance, PARTY, head)
+            if retired and retirement_tools_dir is not None:
+                # The compiler runner verifies its independent immutable release before
+                # executing the shared retirement reader. A claimed JSON receipt cannot
+                # stand in for its official-run/signature/history checks.
+                if composed_base_ref is None or composed_head_ref is None:
+                    raise Refused('consumer retirement requires the exact composed before/after refs')
+                checked = subprocess.run([
+                    sys.executable, str(ludlow_dir / '.github/scripts/platform-tools.py'),
+                    '--adopter-dir', str(ludlow_dir.resolve()), '--tools-dir', str(retirement_tools_dir.resolve()),
+                    'retirement-check', '--adopter-dir', str(ludlow_dir.resolve()),
+                    '--parent-dir', str(platform_dir.resolve()), '--base-ref', composed_base_ref,
+                    '--head-ref', composed_head_ref], capture_output=True, text=True, timeout=180)
+                if checked.returncode:
+                    raise Refused('verified compiler refused the exact consumer retirement')
+                decision = json.loads(checked.stdout)
+                if (decision.get('admitted') is not True or decision.get('bump') != 'major' or
+                        decision.get('retired') != retired):
+                    raise Refused('verified compiler retirement does not match the computed major removal')
+                if not acceptance['unaccepted']:
+                    acceptance['admitted'] = True
+                    acceptance['lines'] = acceptance_lines(dict(acceptance, retired=[]), PARTY, head)
+                    acceptance['lines'].append('exact consumer retirement independently verified; composed bump remains major')
         comment = render_comment(old_pin, new_pin, declared, composed, results, note, acceptance)
 
         if composed == "major" and acceptance is not None:
             if acceptance["admitted"]:
-                print(f"PASS: declared={declared} composed=major, admitted: every major this pull "
-                      f"request adds is accepted by a record in {RECORD_DIR}/ (eco-system ticket 132) "
-                      f"-- " + "; ".join(acceptance["lines"]))
+                print(f"PASS: declared={declared} composed=major, admitted by the exact reviewed "
+                      f"acceptance decisions -- " + "; ".join(acceptance["lines"]))
                 return 0, comment
             print(f"REFUSE: composed bump is major -- {[r['version'] for r in results if r['bump']=='major']} "
                   f"-- not every major it brings is accepted -- " + "; ".join(acceptance["lines"]))
@@ -767,7 +791,7 @@ def run(ludlow_dir: Path, platform_dir: Path, old_ref: str, new_ref: str,
     except Refused as exc:
         print(f"REFUSE: {exc}")
         return 1, write_refusal_comment(str(exc), old_pin, new_pin)
-    except OSError as exc:
+    except (OSError, subprocess.TimeoutExpired) as exc:
         # A missing/broken local tool (verify_evidence's `cosign` subprocess call is
         # the one reachable case: FileNotFoundError if cosign isn't on PATH) -- not
         # malformed platform data, so it gets its own honest wording rather than the
@@ -1606,6 +1630,8 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--out-body", type=Path)
     ap.add_argument("--ludlow-dir", type=Path)
     ap.add_argument("--platform-dir", type=Path)
+    ap.add_argument('--retirement-tools-dir', type=Path,
+                    help='independently pinned and verified compiler tools for explicit consumer retirement')
     ap.add_argument("--old-ref")
     ap.add_argument("--new-ref")
     ap.add_argument("--composed-base-ref", default=None,
@@ -1644,7 +1670,8 @@ def main(argv: list[str]) -> int:
 
     code, comment = run(args.ludlow_dir, args.platform_dir, args.old_ref, args.new_ref,
                          args.identity_regexp, args.issuer,
-                         composed_base_ref=args.composed_base_ref, composed_head_ref=args.composed_head_ref)
+                         composed_base_ref=args.composed_base_ref, composed_head_ref=args.composed_head_ref,
+                         retirement_tools_dir=args.retirement_tools_dir)
     args.out_comment.write_text(wrap_section(comment))
     return code
 
