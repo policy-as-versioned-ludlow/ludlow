@@ -71,6 +71,9 @@ fail() { echo "FAIL: $*" >&2; exit 1; }
 skip() { echo "SKIP: $*"; exit 3; }
 say() { echo; echo "== $* =="; }
 
+# Exercise the actual tag writer with a signer that refuses before issuance.
+python3 "$HERE/.github/tests/test_release_signing.py"
+
 # ---------------------------------------------------------------------------
 say "Part A: ADOPTER_GATE_IDENTITY_REGEXP, pure and offline"
 # ---------------------------------------------------------------------------
