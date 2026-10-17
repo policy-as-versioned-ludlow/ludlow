@@ -48,8 +48,6 @@ spec:
   # Ready establishes reconciliation order; actual webhook mutation remains
   # a separate cluster observation, not a guarantee from this dependency.
   dependsOn:
-    - name: composed-v5-0-0
-    - name: composed-v6-0-0
     - name: composed-v7-0-0
     - name: composed-machinery
   path: ./gitops/apps

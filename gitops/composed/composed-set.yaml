@@ -24,8 +24,9 @@
 #     install platform's tree; it installs the artefact its own composition rendered from
 #     platform's and nist's signed parents (composed/HEADER.yaml records those parent SHAs, and
 #     fact 3 of the sample checks the live platform and nist pins against them).
-#   * apps remain at genuine v4.0.0 Source A; composed serves signed v4.0.1 Composition B.
-#     Composition B renders from Source A's apps/inventory binding and carries policy 5/6/7.
+#   * apps retain their genuine v4.0.0 Source A binding; composed selects the signed
+#     v5.0.0 retirement Source A, which retains policy 7.0.0 on engine 1.18.2. This B
+#     moves its real pointer, version array, signature gates and app dependencies together.
 #   * there is no `spec.verify` here. Flux's GitRepository.spec.verify speaks OpenPGP, and one
 #     signature -- the gitsign tag -- is the only one this estate has (ADR-0023, D3). Verification
 #     at the source boundary is the identity-pinned gitsign-verifying controller of ticket 41,
@@ -64,16 +65,16 @@ metadata:
     # verified with somebody else's identity is observed false rather than merely 'verified'.
     policy-as-versioned.dev/gitsign-identity-regexp: ^https://github\.com/policy-as-versioned-ludlow/ludlow/\.github/workflows/cut-release\.yml@refs/heads/(main|release/[0-9]+\.[0-9]+\.x)$
     policy-as-versioned.dev/gitsign-issuer: https://token.actions.githubusercontent.com
-    policy-as-versioned.dev/gitsign-gates: flux-system/composed-v5-0-0,flux-system/composed-v6-0-0,flux-system/composed-v7-0-0,flux-system/composed-machinery
+    policy-as-versioned.dev/gitsign-gates: flux-system/composed-v7-0-0,flux-system/composed-machinery
   labels:
     policy-as-versioned.dev/composed-for: ludlow
 spec:
   interval: 1m
   url: https://github.com/policy-as-versioned-ludlow/ludlow
   ref:
-    tag: v4.0.1
-    commit: 3b57f0ce3a9b3da79abf78d4a0ab3ff67dc6e289
-    # The resolved SHA of the genuine signed v4.0.1 Composition B release.
+    tag: v5.0.0
+    commit: d93e41289d0b749f5eccea3a09b303e54ad1cdb4
+    # The resolved SHA of the genuine signed v5.0.0 retirement Source A release.
     # Belt-and-braces immutability, ADR-0001.
 ---
 apiVersion: fluxcd.controlplane.io/v1
@@ -91,11 +92,9 @@ spec:
         # render offline, and `render_composed.py reach` refuses it unless it equals the version
         # directories the pinned tag carries and every machinery allow-list at that tag. Move it
         # in the same pull request that moves the tag.
-        - { version: "5.0.0" }
-        - { version: "6.0.0" }
         - { version: "7.0.0" }
-        # This array and all verification gates match the genuine signed target tree.
-        # Current workload declarations claim 7.0.0; older supported claims remain caged.
+        # The explicit consumer retirement retains 7.0.0 while the engine remains at 1.18.2.
+        # Its signed composition delivery must land before the planned engine transition.
   resourcesTemplate: |
     << range $v := (index (inputs) "versions") >>
     ---
