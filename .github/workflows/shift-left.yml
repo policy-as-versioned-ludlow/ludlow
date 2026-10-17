@@ -451,6 +451,7 @@ jobs:
 
       - name: Compiler boundary and real checkout-layout regression
         env:
+          GH_TOKEN: ${{ github.token }}
           PAVF_REAL_ESTATE: ${{ github.workspace }}
         run: |
           set -euo pipefail
