@@ -122,27 +122,14 @@ jobs:
           fetch-depth: 0
 
       - name: party artefact check (ticket 11) -- schema, pinned tags, baseline mirror
-        # platform/party/party_artefact.py, called through the pinned platform
-        # dependency this job already checked out above -- the same "library,
-        # not a service" shape ci-check.py uses. Refuses if party.yaml is
-        # structurally invalid, if a declared implementations/controls version
-        # disagrees with what gitops/platform/platform-pin.yaml or
-        # gitops/flux-system/gotk-sync-nist.yaml actually pin, or if
-        # gitops/apps/nist-pin-configmap.yaml's baselineName disagrees with
-        # party.yaml's own baseline.
-        #
-        # platform-pin.yaml still pins v0.1.0, a tag cut before platform/party/
-        # existed -- skip (not fail) until platform ships a tag that has it and
-        # this pin is bumped, so this required check doesn't hard-block every
-        # PR in the gap between landing ticket 11 here and platform releasing.
+        # Compiler input validation follows the independently pinned, verified tools.
+        # The accepted platform checkout still supplies the policy/enforcement gates.
+        # This required checker validates the party schema and the existing pin and
+        # baseline mirrors; missing tooling or a refusal fails the job.
         run: |
           set -euo pipefail
-          if [ ! -f platform/party/party_artefact.py ]; then
-            echo "SKIP: platform/party/party_artefact.py isn't in the pinned platform tag (${{ steps.pin.outputs.tag }}) yet -- party/ ships once platform cuts a release that includes it and this repo's platform-pin.yaml is bumped to that tag (ticket 11)." >&2
-            exit 0
-          fi
           pip install --quiet pyyaml
-          python3 platform/party/party_artefact.py check ludlow/party.yaml --adopter-dir ludlow
+          python3 platform-tools/party/party_artefact.py check ludlow/party.yaml --adopter-dir ludlow
 
       - name: read the engine this repository declares (gitops/engine/kyverno.yaml, ticket 147)
         id: engine
