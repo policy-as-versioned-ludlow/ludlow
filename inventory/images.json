@@ -1,7 +1,7 @@
 {
   "images": [
     {
-      "database_date": "2026-10-16T01:13:54.947090392Z",
+      "database_date": "2026-10-21T13:15:34.794358024Z",
       "digest": "sha256:fa1b651ace9b00a636a4c0622fa9be63667fcdfe61a34e3ed8b618f07f0397e2",
       "image": "ghcr.io/policy-as-versioned-ludlow/reports:v1.0.1@sha256:fa1b651ace9b00a636a4c0622fa9be63667fcdfe61a34e3ed8b618f07f0397e2",
       "scanner_version": "0.69.3",
@@ -1565,6 +1565,13 @@
           "id": "DSA-6549-1",
           "installed_version": "5.8.1-1+deb13u1",
           "package": "liblzma5",
+          "severity": "UNKNOWN"
+        },
+        {
+          "fixed_version": "20250419+deb13u1",
+          "id": "DSA-6572-1",
+          "installed_version": "20250419",
+          "package": "ca-certificates",
           "severity": "UNKNOWN"
         },
         {
