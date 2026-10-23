@@ -625,7 +625,7 @@ ungoverned-namespaces: []
 withdrawn-selectable: false
 comparison-inputs:
   schema: 1
-  after: 46690b6765ee627ab8994b4c928477555b3e689c835e611ae23c6515bc144db5
+  after: 29b639b16ab1a9888920bbe158373da3c82fa7b8dc35aa33946e516f7b8f5cd4
   before:
     header:
       parents:
@@ -1268,7 +1268,7 @@ comparison-inputs:
     - kind: agent-cage
       source: platform
       name: twin-agent
-      proposed_tier: baseline
+      proposed_tier: isolated
       hole: null
     - kind: switching
       source: ico
@@ -1290,7 +1290,10 @@ comparison-inputs:
       name: eol
       proposed_tier: null
       hole: null
-    cages: []
+    cages:
+    - party: ludlow
+      rule: graded-enforcement/cage-tier@7.0.0
+      tier: isolated
 vendored-feeds:
 - party: ico
   name: penalty-schema
