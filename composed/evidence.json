@@ -191,7 +191,146 @@
   ],
   "refusals": [],
   "restatements": [],
-  "cages": [],
+  "cages": [
+    {
+      "party": "ludlow",
+      "rule": "graded-enforcement/cage-tier@7.0.0",
+      "band": 5000.0,
+      "residual": 25.775804140208628,
+      "tier": "isolated",
+      "action": "Cage",
+      "priced_from": "scenarios/workload-reports-recovery.json",
+      "mode": "recovery_planning",
+      "why": "Owner adopted 2026-10-23: exact declared workload recovery planning assumptions, existing accepted ordinal reduction/cost model and explicit isolated minimum. Unvalidated planning inputs only; no empirical effectiveness, calibration, response evidence or grade promotion. Overlapping counterfactual contingencies are not summed into institutional loss.",
+      "decision": {
+        "version": "owner-adopted-recovery-planning-20261023",
+        "name": "UNVALIDATED PLANNING: Restore the served demo reports workload; no real patient-data compromise or regulatory fine is asserted.",
+        "org": "ludlow",
+        "uncaged_residual": 1288.7902070104303,
+        "tolerance": 5000.0,
+        "tier": "isolated",
+        "floor": "isolated",
+        "action": "Cage",
+        "dials": {
+          "reduce": 0.98,
+          "cost": 15000,
+          "cpu": "100m",
+          "mem": "64Mi",
+          "priorityClass": "cage-isolated",
+          "dropAll": true,
+          "readOnlyRootFs": true,
+          "waf": "heavy",
+          "reach": "none",
+          "evictFirst": true
+        },
+        "tcor": {
+          "tier": "isolated",
+          "residual": 25.775804140208628,
+          "cost_of_controls": 15000.0,
+          "tcor": 15025.775804140208
+        },
+        "reason": "uncaged \u00a31,289; isolated cage -> residual \u00a326 + controls \u00a315,000 = TCoR \u00a315,026 (fits band \u00a35,000)"
+      },
+      "binding": {
+        "subject": "ludlow/reports",
+        "policy": "cage-tier",
+        "control": "ac-6"
+      },
+      "oscal_risk": {
+        "uuid": "09d1e696-f1e2-5a80-889a-578b6107517f",
+        "title": "ludlow/reports: cage-tier caged at isolated in ludlow",
+        "description": "uncaged \u00a31,289; isolated cage -> residual \u00a326 + controls \u00a315,000 = TCoR \u00a315,026 (fits band \u00a35,000)",
+        "statement": "Conditional control cage-tier is not satisfied for ludlow/reports; a isolated cage implements the control on its behalf and the residual is retained, priced, not carved out.",
+        "props": [
+          {
+            "name": "policy",
+            "value": "cage-tier"
+          },
+          {
+            "name": "control",
+            "value": "ac-6"
+          },
+          {
+            "name": "cage-tier",
+            "value": "isolated"
+          }
+        ],
+        "status": "open",
+        "origins": [
+          {
+            "actors": [
+              {
+                "type": "party",
+                "actor-uuid": "11742dfb-c25d-5aac-b8a6-7056b9dc33bb"
+              }
+            ]
+          }
+        ],
+        "characterizations": [
+          {
+            "origin": {
+              "actors": [
+                {
+                  "type": "party",
+                  "actor-uuid": "11742dfb-c25d-5aac-b8a6-7056b9dc33bb"
+                }
+              ]
+            },
+            "facets": [
+              {
+                "name": "likelihood",
+                "system": "https://pavf.dev/ns/risk",
+                "value": "likely"
+              },
+              {
+                "name": "impact",
+                "system": "https://pavf.dev/ns/risk",
+                "value": "high"
+              },
+              {
+                "name": "annualised-loss-expectancy",
+                "system": "https://pavf.dev/ns/risk/gbp",
+                "value": "26",
+                "props": [
+                  {
+                    "name": "currency",
+                    "value": "GBP"
+                  },
+                  {
+                    "name": "basis",
+                    "value": "caged-residual"
+                  },
+                  {
+                    "name": "cost-of-controls",
+                    "value": "15000"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "remediations": [
+          {
+            "uuid": "6a433eb5-0479-55c7-8664-1d1c818bf8a6",
+            "lifecycle": "implemented",
+            "title": "isolated cage",
+            "description": "uncaged \u00a31,289; isolated cage -> residual \u00a326 + controls \u00a315,000 = TCoR \u00a315,026 (fits band \u00a35,000)",
+            "props": [
+              {
+                "name": "type",
+                "value": "mitigate"
+              }
+            ]
+          }
+        ],
+        "related-observations": [
+          {
+            "observation-uuid": "6a834573-26b8-51b6-83a9-1c40cda91ab9"
+          }
+        ]
+      }
+    }
+  ],
   "holes": [
     {
       "source": "nist",
@@ -3594,8 +3733,8 @@
           "one day is the schedule's whole interval, the upper bound on the wait for the next run; the mean wait is half of it"
         ]
       },
-      "proposed_tier": "baseline",
-      "old_tier": "baseline",
+      "proposed_tier": "isolated",
+      "old_tier": "isolated",
       "changed": false,
       "old_amount": 2.9832690625309497,
       "residuals": {
@@ -3667,12 +3806,12 @@
       "register_version": "v4",
       "tail": "bounded-pert",
       "policy_version": "1.1.0",
-      "policy_basis": "loosest tier whose caged residual (2.98 GBP) is within the tolerance (5000.00 GBP)",
+      "policy_basis": "loosest tier whose caged residual (2.98 GBP) is within the tolerance (5000.00 GBP); clamped up to the party's declared floor 'isolated'",
       "tcor": {
-        "tier": "baseline",
-        "residual": 2.9832690625309497,
+        "tier": "isolated",
+        "residual": 0.0,
         "cost_of_controls": 0.0,
-        "tcor": 2.9832690625309497
+        "tcor": 0.0
       },
       "rests_on_grade": 3,
       "rests_on_grade_basis": "the register row is published (grade 3 at best: published work, not observed here) and the twin line rests on grade 3; the weaker of the two"
@@ -3963,17 +4102,107 @@
       ]
     }
   ],
-  "deltas": [],
+  "deltas": [
+    {
+      "kind": "floor-change",
+      "subject": "ludlow",
+      "detail": "floor-only counterfactual at current publisher, scenario, appetite and selection inputs",
+      "comparison": {
+        "schema": 1,
+        "before": {
+          "known": true,
+          "value": null
+        },
+        "after": {
+          "known": true,
+          "value": "isolated"
+        },
+        "changed": true,
+        "basis": "floor-only counterfactual at current publisher, scenario, appetite and selection inputs",
+        "residual_basis": "platform-cage-tiers@1.0.0",
+        "lines": [
+          {
+            "source": "ico",
+            "kind": "feed",
+            "name": "penalty-schema",
+            "perspective": "ludlow",
+            "currency": "GBP",
+            "uncaged_amount": 3071757723.556848,
+            "before_tier": "isolated",
+            "after_tier": "isolated",
+            "before_residual": 61435154.47113702,
+            "after_residual": 61435154.47113702,
+            "residual_delta": 0.0
+          },
+          {
+            "source": "feeds",
+            "kind": "feed",
+            "name": "threat-register",
+            "perspective": "ludlow",
+            "currency": "GBP",
+            "uncaged_amount": 318229.7785850087,
+            "before_tier": "isolated",
+            "after_tier": "isolated",
+            "before_residual": 6364.59557170018,
+            "after_residual": 6364.59557170018,
+            "residual_delta": 0.0
+          },
+          {
+            "source": "feeds",
+            "kind": "feed",
+            "name": "cve",
+            "perspective": "ludlow",
+            "currency": "GBP",
+            "uncaged_amount": null,
+            "before_tier": null,
+            "after_tier": null,
+            "before_residual": null,
+            "after_residual": null,
+            "residual_delta": null
+          },
+          {
+            "source": "feeds",
+            "kind": "feed",
+            "name": "eol",
+            "perspective": "ludlow",
+            "currency": "GBP",
+            "uncaged_amount": 787227.8274739302,
+            "before_tier": "isolated",
+            "after_tier": "isolated",
+            "before_residual": 15744.556549478619,
+            "after_residual": 15744.556549478619,
+            "residual_delta": 0.0
+          },
+          {
+            "source": "twin",
+            "kind": "twin",
+            "name": "forward-intel",
+            "perspective": "ludlow",
+            "currency": "GBP",
+            "uncaged_amount": 13435900.928034885,
+            "before_tier": "isolated",
+            "after_tier": "isolated",
+            "before_residual": 268718.01856069796,
+            "after_residual": 268718.01856069796,
+            "residual_delta": 0.0
+          }
+        ],
+        "could_not_look": "one or more exposure lines have no selectable tier",
+        "limit": "selection evidence, not an enacted Namespace tier; platform reductions are self-declared calibration, not measured effectiveness"
+      }
+    }
+  ],
   "floor_change": {
     "schema": 1,
     "before": {
-      "known": false
-    },
-    "after": {
       "known": true,
       "value": null
     },
-    "changed": null,
+    "after": {
+      "known": true,
+      "value": "isolated"
+    },
+    "changed": true,
     "basis": "floor-only counterfactual at current publisher, scenario, appetite and selection inputs",
     "residual_basis": "platform-cage-tiers@1.0.0",
     "lines": [
@@ -3984,11 +4213,11 @@
         "perspective": "ludlow",
         "currency": "GBP",
         "uncaged_amount": 3071757723.556848,
-        "before_tier": null,
+        "before_tier": "isolated",
         "after_tier": "isolated",
-        "before_residual": null,
+        "before_residual": 61435154.47113702,
         "after_residual": 61435154.47113702,
-        "residual_delta": null
+        "residual_delta": 0.0
       },
       {
         "source": "feeds",
@@ -3997,11 +4226,11 @@
         "perspective": "ludlow",
         "currency": "GBP",
         "uncaged_amount": 318229.7785850087,
-        "before_tier": null,
+        "before_tier": "isolated",
         "after_tier": "isolated",
-        "before_residual": null,
+        "before_residual": 6364.59557170018,
         "after_residual": 6364.59557170018,
-        "residual_delta": null
+        "residual_delta": 0.0
       },
       {
         "source": "feeds",
@@ -4023,11 +4252,11 @@
         "perspective": "ludlow",
         "currency": "GBP",
         "uncaged_amount": 787227.8274739302,
-        "before_tier": null,
+        "before_tier": "isolated",
         "after_tier": "isolated",
-        "before_residual": null,
+        "before_residual": 15744.556549478619,
         "after_residual": 15744.556549478619,
-        "residual_delta": null
+        "residual_delta": 0.0
       },
       {
         "source": "twin",
@@ -4036,14 +4265,14 @@
         "perspective": "ludlow",
         "currency": "GBP",
         "uncaged_amount": 13435900.928034885,
-        "before_tier": null,
+        "before_tier": "isolated",
         "after_tier": "isolated",
-        "before_residual": null,
+        "before_residual": 268718.01856069796,
         "after_residual": 268718.01856069796,
-        "residual_delta": null
+        "residual_delta": 0.0
       }
     ],
-    "could_not_look": "previous floor was not recorded; absence of history is not an absent floor",
+    "could_not_look": "one or more exposure lines have no selectable tier",
     "limit": "selection evidence, not an enacted Namespace tier; platform reductions are self-declared calibration, not measured effectiveness"
   },
   "limits": [
