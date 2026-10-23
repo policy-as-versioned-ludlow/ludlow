@@ -25,7 +25,7 @@
 #     platform's and nist's signed parents (composed/HEADER.yaml records those parent SHAs, and
 #     fact 3 of the sample checks the live platform and nist pins against them).
 #   * apps retain their genuine v4.0.0 Source A binding; composed selects the signed
-#     v5.1.1 engine compatibility B. It preserves the measured retirement and serves policy 7.0.0
+#     v5.2.0 compatible feeds 4.1 release. It preserves the measured retirement and serves policy 7.0.0
 #     on declared engine 1.19.1 with the existing gates and app dependencies.
 #   * there is no `spec.verify` here. Flux's GitRepository.spec.verify speaks OpenPGP, and one
 #     signature -- the gitsign tag -- is the only one this estate has (ADR-0023, D3). Verification
@@ -72,9 +72,9 @@ spec:
   interval: 1m
   url: https://github.com/policy-as-versioned-ludlow/ludlow
   ref:
-    tag: v5.1.1
-    commit: 4bc8baba9efa419b7242a376fe5606a2b1871520
-    # The resolved SHA of the genuine signed v5.1.1 engine compatibility B release.
+    tag: v5.2.0
+    commit: 17bc9dbd176b97b1e3d551aa9ebf79c0b89df216
+    # The resolved source SHA of the genuine signed v5.2.0 release.
     # Belt-and-braces immutability, ADR-0001.
 ---
 apiVersion: fluxcd.controlplane.io/v1
