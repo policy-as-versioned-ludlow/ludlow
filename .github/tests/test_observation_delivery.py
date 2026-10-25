@@ -15,8 +15,8 @@ import unittest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE = 'a675ee166678fd6b1b0d5d5ebcb35ad96be5b127'
-BUNDLE = 'afc5cac1af0f91593a8c4901603cf9dcbd534bc4923d62a5ac224614362c0b23'
+SOURCE = 'f546d2d925e44aabdb751ac44baf067def274fcf'
+BUNDLE = '8b632a43bcb217b9edb5a48c22d133c99108c53435b78acd4af84753069e6b7f'
 
 
 def workflow(clock):
