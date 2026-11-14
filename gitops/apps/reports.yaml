@@ -6,7 +6,7 @@
 # only because that list names it. A workload file sitting in this directory unlisted is served
 # to nobody; the hub's verify/lifted-apps/ check reads the path and the list, not the directory.
 #
-# NOT YET SERVED FROM THE PIN. The same file's GitRepository pins `ref: {tag: v1.0.0, commit:
+# HISTORICAL CEILING, before ticket 155 moves the self-pin. The same file's GitRepository pins `ref: {tag: v1.0.0, commit:
 # ...}`, and that tree's kustomization does not list this file, so a cluster reconciling the pin
 # today is served nothing from here until ludlow cuts a tag and moves its own pin -- which no
 # renovate customManager bumps (they cover the parents only). The hub check counts that on every
@@ -63,7 +63,7 @@ spec:
     runAsUser: 1000
   containers:
     - name: reports
-      image: ghcr.io/policy-as-versioned-flux/reports@sha256:36dc3d7d1bd5193f46a55d57b505beb5e99d7925f65b0fad3c1f7d1aeafefcf5
+      image: ghcr.io/policy-as-versioned-ludlow/reports:v1.0.1@sha256:fa1b651ace9b00a636a4c0622fa9be63667fcdfe61a34e3ed8b618f07f0397e2
       ports:
         - containerPort: 8080
       securityContext:
